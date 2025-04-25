@@ -1039,15 +1039,18 @@
 						stopRecognition();
 					}
 					
-					// Xóa nội dung
+					// Xóa nội dung các phần tử
 					elements.editableText.value = '';
 					elements.translationText.textContent = '';
 					elements.resultBox.textContent = '';
+					elements.suggestions.innerHTML = '';
+					elements.suggestionTranslation.textContent = '';
+					elements.suggestionTranslation.classList.add('hidden');
+					elements.vocabList.innerHTML = '';
 					
 					// Ẩn các khối không cần thiết
 					elements.translationBox.classList.add('hidden');
 					elements.correctionsBox.classList.add('hidden');
-					elements.contextSuggestionBox.classList.add('hidden');
 					elements.vocabBox.classList.add('hidden');
 					
 					// Reset các biến trạng thái
@@ -1055,6 +1058,7 @@
 					interimTranscript = '';
 					lastTranslatedText = '';
 					lastRecognitionResult = '';
+					translationQueue = [];
 					
 					// Vô hiệu hóa các nút hành động
 					toggleActionButtons(false);
