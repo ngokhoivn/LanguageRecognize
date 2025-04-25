@@ -406,6 +406,7 @@
 				vocabBtn: document.getElementById('vocabBtn'),
 				vocabBox: document.getElementById('vocabBox'),
 				vocabList: document.getElementById('vocabList'),
+				messageText: document.getElementById('result')
             };
 
             const GEMINI_API_KEY = "AIzaSyDaROReiR48rjfavf8Lk6XvphC6QxKPZo4";
@@ -422,6 +423,7 @@
 			let recognitionPaused = false;
 			let lastRecognitionResult = '';
 			let consecutiveSilenceCount = 0;
+			let recognitionStoppedManually = false;
 
 			// Initialize Web Speech API
 			function initSpeechRecognition() {
@@ -1030,20 +1032,40 @@
 			});
 
 			// Thêm chức năng nút clear
-			elements.clearBtn.addEventListener('click', () => {
-				// Xóa tất cả văn bản và reset trạng thái
-				resetRecognition();
-				elements.editableText.value = '';
-				elements.translationText.textContent = '';
-				elements.translationBox.classList.add('hidden');
-				elements.correctionsBox.classList.add('hidden');
-				
-				// Vô hiệu hóa các nút hành động
-				toggleActionButtons(false);
-				
-				// Hiển thị trạng thái
-				showStatus('info', 'Đã xóa tất cả');
-			});	
+			elements.clearBtn.addEventListener('click', function() {
+				try {
+					// Dừng ghi âm nếu đang chạy
+					if (isRecording) {
+						stopRecognition();
+					}
+					
+					// Xóa nội dung
+					elements.editableText.value = '';
+					elements.translationText.textContent = '';
+					elements.resultBox.textContent = '';
+					
+					// Ẩn các khối không cần thiết
+					elements.translationBox.classList.add('hidden');
+					elements.correctionsBox.classList.add('hidden');
+					elements.contextSuggestionBox.classList.add('hidden');
+					elements.vocabBox.classList.add('hidden');
+					
+					// Reset các biến trạng thái
+					finalTranscript = '';
+					interimTranscript = '';
+					lastTranslatedText = '';
+					lastRecognitionResult = '';
+					
+					// Vô hiệu hóa các nút hành động
+					toggleActionButtons(false);
+					
+					// Hiển thị trạng thái
+					showStatus('info', 'Đã xóa tất cả nội dung');
+				} catch (error) {
+					console.error("Lỗi khi xóa:", error);
+					showStatus('error', 'Lỗi khi xóa nội dung');
+				}
+			});
 
 			// Biến cờ và trạng thái
 			let isTranslating = false;
