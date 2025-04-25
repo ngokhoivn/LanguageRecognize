@@ -464,12 +464,12 @@
         <div id="result" class="result-box hidden">
             <div class="message" id="message-text"></div>
         </div>
-
-        <textarea id="editableText" class="text-area" placeholder="Tin nhắn của bạn sẽ xuất hiện ở đây..."></textarea>
-
+		
         <div id="translation" class="translation-box">
             <div class="message" id="translation-text"></div>
         </div>
+		
+        <textarea id="editableText" class="text-area" placeholder="Tin nhắn của bạn sẽ xuất hiện ở đây..."></textarea>
 
         <div class="loading hidden" id="loading">
             <div class="spinner"></div>
@@ -930,13 +930,13 @@
 
 			// Handle user typing directly into textarea
 			elements.editableText.addEventListener('input', () => {
-				// Update final transcript when user types
+				// Lấy nội dung người dùng đang gõ
 				finalTranscript = elements.editableText.value.trim();
 				
-				// Enable action buttons if text exists
+				// Kích hoạt nút nếu có văn bản
 				toggleActionButtons(!!finalTranscript);
 				
-				// Schedule translation
+				// Lên lịch dịch dựa trên nội dung trong editable box
 				scheduleTranslation(finalTranscript);
 			});
 
