@@ -540,769 +540,497 @@
             };
 
             const GEMINI_API_KEY = "AIzaSyDaROReiR48rjfavf8Lk6XvphC6QxKPZo4";
-            let recognition = null;
-            let isRecording = false;
-            let currentLang = 'vi-VN';
-            
-            // Buffer for interim speech recognition results
-            let interimBuffer = '';
-            let finalBuffer = '';
-			let translationTimeout = null;
+			// Speech Recognition Logic
+			let recognition = null;
+			let isRecording = false;
+			let recognitionTimeout = null;
+			let translationDebounceTimer = null;
+			let finalTranscript = '';
+			let interimTranscript = '';
+			let recognitionPaused = false;
+			let lastRecognitionResult = '';
+			let consecutiveSilenceCount = 0;
 
-            // Toggle action buttons
-            function toggleActionButtons(enabled) {
-                elements.suggestBtn.disabled = !enabled;
-                elements.speakBtn.disabled = !enabled;
-                elements.saveBtn.disabled = !enabled;
-            }
-
-            // Call Gemini API
-            async function fetchFromGemini(promptText) {
-                try {
-                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] })
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.error?.message || 'API request failed');
-                    }
-
-                    return response.json();
-                } catch (error) {
-                    console.error("Error calling Gemini API:", error);
-                    throw error;
-                }
-            }
-
-            // Translate text based on current language
-            async function translateText(text) {
-                if (!text) return '';
-				
-				// Thêm delay 1-2 giây giữa các request
-				await new Promise(resolve => setTimeout(resolve, 3500));
-                
-                let promptText;
-                if (currentLang === 'vi-VN') {
-                    promptText = `
-                        Dịch câu tiếng Việt sau sang tiếng Nhật: "${text}"
-                        Trả lời chỉ với bản dịch tiếng Nhật, không thêm giải thích hoặc định dạng khác.
-                    `;
+			// Initialize Web Speech API
+			function initSpeechRecognition() {
+				// Check browser support
+				if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+					showStatus('error', 'Trình duyệt không hỗ trợ nhận diện giọng nói. Hãy dùng Chrome hoặc Edge.');
+					elements.micBtn.disabled = true;
+					return false;
 				}
-				if (currentLang === 'en-US') {
-					promptText = `
-					  Bạn là trợ lý trò chuyện tiếng Anh. Hãy đề xuất 2-3 cách diễn đạt lại câu sau tự nhiên hơn để trò chuyện với người nước ngoài.
-					  Câu: "${text}"
-					  Trả về bằng JSON như sau:
-					  {
-						"corrected_text": "I’m sorry, can you repeat that?",
-						"suggestions": [
-						  "Xin lỗi, bạn có thể nhắc lại không?",
-						  "Tôi không nghe rõ, bạn nói lại được không?",
-						  "Bạn vui lòng nhắc lại lần nữa nhé?"
-						]
-					  }
-					`;				
-                } else {
-                    promptText = `
-                        Dịch câu tiếng Nhật sau sang tiếng Việt: "${text}"
-                        Trả lời chỉ với bản dịch tiếng Việt, không thêm giải thích hoặc định dạng khác.
-                    `;
-                }
-                
-                const response = await fetchFromGemini(promptText);
-                return response.candidates[0].content.parts[0].text.trim();
-            }
 
-            // Get improved text and suggestions
-            async function getImprovedTextAndSuggestions(text, language) {
-				console.log('Input text:', text);
-				console.log('Current language:', language);
-				
-                const promptText = `
-					Bạn là một trợ lý trò chuyện. Phân tích câu nói sau bằng ${language === 'ja-JP' ? 'tiếng Nhật' : (language === 'en-US' ? 'tiếng Anh' : 'tiếng Việt')} và đề xuất 2-3 cách diễn đạt tự nhiên hơn, phù hợp để trò chuyện hàng ngày.
-
-					Câu nói: "${text}"
-
-					Tất cả các gợi ý và câu đã cải thiện phải giữ nguyên bằng ngôn ngữ gốc (${language}).
-
-					Trả lời theo định dạng JSON:
-					{
-					  "corrected_text": "câu đã chỉnh sửa",
-					  "suggestions": ["gợi ý 1", "gợi ý 2", "gợi ý 3"]
-					}
-					`;						
-                
-                const response = await fetchFromGemini(promptText);
-                const responseText = response.candidates[0].content.parts[0].text;
-                const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-                if (!jsonMatch) throw new Error('Không thể phân tích phản hồi từ Gemini');
-                return JSON.parse(jsonMatch[0]);
-				
-				// Sau khi nhận response
-				console.log('API response:', responseText);
-				console.log('Parsed JSON:', jsonMatch ? JSON.parse(jsonMatch[0]) : null);
-            }
-
-            // Improved language detection
-            function detectLanguage(text) {
-                if (!text) return 'unknown';
-                
-                // Vietnamese detection
-                const vietnameseRegex = /[àáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ]/i;
-                if (vietnameseRegex.test(text)) return 'vi-VN';
-
-                // Japanese detection
-                const japaneseRegex = /[\u3000-\u303F\u3040-\u309F\u30A0-\u30FF\uFF00-\uFFEF\u4E00-\u9FAF]/;
-                if (japaneseRegex.test(text)) return 'ja-JP';
-                
-                // Fallback to common word detection
-                const commonVietnameseWords = [
-                    'toi', 'ban', 'la', 'cua', 'di', 've', 'va', 'voi', 'cho', 'tu',
-                    'den', 'trong', 'ngoai', 'len', 'xuong', 'giua', 'tai', 'nho', 'lon', 'rat'
-                ];
-                
-                const wordCount = {};
-                const words = text.toLowerCase().split(/\s+/);
-                
-                words.forEach(word => {
-                    if (commonVietnameseWords.includes(word)) {
-                        wordCount['vi-VN'] = (wordCount['vi-VN'] || 0) + 1;
-                    }
-                });
-                
-                if (wordCount['vi-VN'] > 0) return 'vi-VN';
-                
-                return 'unknown';
-            }
-			
-			// Hiển thị bản dịch cho văn bản đầu vào
-			async function displayTranslation(text) {
-				if (!text) {
-					elements.translationBox.classList.add('hidden');
-					elements.translationText.textContent = '';
-					return;
-				}
-				
-				elements.loading.classList.remove('hidden');
 				try {
-					const translation = await translateText(text);
-					elements.translationText.textContent = translation;
-					elements.translationBox.classList.remove('hidden');
+					// Create recognition instance
+					recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+					
+					// Configure settings
+					recognition.lang = currentLang;
+					recognition.interimResults = true;
+					recognition.continuous = true;
+					recognition.maxAlternatives = 3;
+
+					// Handle recognition results
+					recognition.onresult = handleRecognitionResult;
+					
+					// Handle events
+					recognition.onstart = handleRecognitionStart;
+					recognition.onend = handleRecognitionEnd;
+					recognition.onerror = handleRecognitionError;
+					recognition.onnomatch = () => {
+						showStatus('warning', 'Không nhận diện được. Vui lòng thử lại.');
+					};
+					
+					return true;
 				} catch (error) {
-					elements.status.innerHTML = `<i class="fas fa-exclamation-triangle"></i><span>Lỗi dịch: ${error.message}</span>`;
-					console.error('Translation error:', error);
-				} finally {
-					elements.loading.classList.add('hidden');
+					console.error("Error initializing speech recognition:", error);
+					showStatus('error', `Lỗi khởi tạo: ${error.message}`);
+					return false;
 				}
-			}			
+			}
 
-            // Text-to-speech
-            function speakText() {
-                const text = currentLang === 'vi-VN'
-                    ? elements.translationText.textContent.trim() // Speak Japanese (translation) when in Vietnamese mode
-                    : elements.editableText.value.trim(); // Speak Japanese (original) when in Japanese mode
-                    
-                if (!text) {
-                    elements.status.innerHTML = '<i class="fas fa-exclamation-circle"></i><span>Không có văn bản để phát âm</span>';
-                    return;
-                }
-
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = {
-					'vi-VN': 'ja-JP',
-					'ja-JP': 'vi-VN',
-					'en-US': 'vi-VN'
-				}[currentLang];
-                utterance.rate = 0.9; // Slightly slower rate for better clarity
-                utterance.pitch = 1;
-                
-                speechSynthesis.cancel(); // Clear any previous speech
-                speechSynthesis.speak(utterance);
-
-                elements.status.innerHTML = '<i class="fas fa-volume-up"></i><span>Đang phát âm...</span>';
-                utterance.onend = () => {
-                    elements.status.innerHTML = '<i class="fas fa-info-circle"></i><span>Sẵn sàng</span>';
-                };
-                
-                utterance.onerror = (event) => {
-                    elements.status.innerHTML = `<i class="fas fa-exclamation-triangle"></i><span>Lỗi phát âm: ${event.error}</span>`;
-                };
-            }
-
-            // Display suggestions
-            function displaySuggestions(suggestions) {
-                elements.suggestionsTitle.textContent = {
-                    'vi-VN': 'Có phải bạn muốn nói là:',
-                    'ja-JP': 'もしかして言いたかったのは：',
-					'en-US': 'Did you mean:'
-				}[currentLang] || 'Suggestions:';
-
-                const detectedLang = currentLang;
-                elements.suggestions.innerHTML = `<ul>${suggestions.map(s => `<li>${s}</li>`).join('')}</ul>`;
-
-                if (validSuggestions.length === 0) {
-                    elements.suggestions.innerHTML = '<p>Không có gợi ý nào.</p>';
-                } else {
-                    elements.suggestions.innerHTML = `<ul>${validSuggestions.map(s => `<li>${s}</li>`).join('')}</ul>`;
-                }
-
-                elements.suggestions.querySelectorAll('li').forEach(li => {
-                    li.addEventListener('click', async () => {
-                        if (currentLang === 'ja-JP') {
-							elements.status.innerHTML = '<i class="fas fa-info-circle"></i><span>Đây là ý nghĩa câu nói</span>';
-                        } else {
-						elements.editableText.value = li.textContent;
-						toggleActionButtons(true);
-						}
-                    });
-                });
-
-                elements.correctionsBox.classList.toggle('hidden', validSuggestions.length === 0);
-            }
-
-            // Suggest improved expressions
-            async function suggestImprovedExpression() {
-                const text = elements.editableText.value.trim();
-                if (!text) {
-                    elements.status.innerHTML = '<i class="fas fa-exclamation-circle"></i><span>Không có tin nhắn để gợi ý</span>';
-                    return;
-                }
-
-                elements.loading.classList.remove('hidden');
-                elements.suggestBtn.disabled = true;
-
-                try {
-                    const result = await getImprovedTextAndSuggestions(text, currentLang);
-                    
-                    // Verify language match for corrected text
-                    const correctedTextLang = detectLanguage(result.corrected_text);
-                    if (correctedTextLang !== 'unknown' && correctedTextLang !== currentLang) {
-                        elements.status.innerHTML = '<i class="fas fa-exclamation-circle"></i><span>Câu cải thiện không phù hợp ngôn ngữ, vui lòng thử lại.</span>';
-                    } else {
-                        elements.editableText.value = result.corrected_text || text;
-                        displaySuggestions(result.suggestions || []);
-                    }
-                } catch (error) {
-                    elements.status.innerHTML = `<i class="fas fa-exclamation-triangle"></i><span>Lỗi: ${error.message}</span>`;
-                } finally {
-                    elements.loading.classList.add('hidden');
-                    elements.suggestBtn.disabled = false;
-                }
-            }
-
-            // Clear all content
-            function clearAll() {
-                elements.editableText.value = '';
-                elements.messageText.textContent = '';
-                elements.translationText.textContent = '';
-                elements.suggestions.innerHTML = '';
-                elements.resultBox.classList.add('hidden');
-                elements.translationBox.classList.add('hidden');
-                elements.correctionsBox.classList.add('hidden');
-                toggleActionButtons(false);
-                elements.status.innerHTML = '<i class="fas fa-info-circle"></i><span>Sẵn sàng</span>';
-                
-                // Clear buffers
-                interimBuffer = '';
-                finalBuffer = '';
-            }
-
-            // Setup Web Speech API
-            function setupRecognition() {
-                if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-                    elements.status.innerHTML = '<i class="fas fa-exclamation-triangle"></i><span>Trình duyệt không hỗ trợ nhận diện giọng nói. Hãy dùng Chrome.</span>';
-                    elements.micBtn.disabled = true;
-                    return;
-                }
-
-                recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-                recognition.lang = currentLang;
-                recognition.interimResults = true;
-                recognition.continuous = true;
-                recognition.maxAlternatives = 1;
-
-                recognition.onresult = async event => {
-                    const result = event.results[event.results.length - 1];
-                    const transcript = result[0].transcript;
-
-                    if (result.isFinal) {
-                        // For final results, append to the final buffer
-                        finalBuffer += (finalBuffer ? ' ' : '') + transcript.trim();
-                        
-                        // Update the editable field with all final results
-                        elements.editableText.value = finalBuffer;
-                        
-                        // Clear the interim display
-                        interimBuffer = '';
-                        elements.messageText.textContent = '';
-                        elements.resultBox.classList.add('hidden');
-                        
-                        // Enable action buttons
-                        toggleActionButtons(true);
-						
-						if (translationTimeout) clearTimeout(translationTimeout); // hủy nếu có timer cũ						
-										
+			// Handle speech recognition results
+			function handleRecognitionResult(event) {
+				// Reset the silence counter since we got a result
+				consecutiveSilenceCount = 0;
+				
+				// Get the current recognition result
+				let interimResult = '';
+				let finalResult = '';
+				
+				// Process all results in this event
+				for (let i = event.resultIndex; i < event.results.length; i++) {
+					const transcript = event.results[i][0].transcript.trim();
+					
+					if (event.results[i].isFinal) {
+						finalResult += transcript + ' ';
+						// Clear any interim display of this text
+						interimTranscript = interimTranscript.replace(transcript, '').trim();
 					} else {
-                        // For interim results, show in the interim result box
-                        interimBuffer = transcript;
-                        elements.messageText.textContent = interimBuffer;
-                        elements.resultBox.classList.remove('hidden');
-                    }
-                };										
+						interimResult += transcript + ' ';
+					}
+				}
+				
+				// Update our transcripts
+				if (finalResult) {
+					finalTranscript += finalResult;
+					lastRecognitionResult = finalResult;
+					
+					// Update the editable field with clean content
+					elements.editableText.value = finalTranscript.trim();
+					
+					// Schedule translation with debounce
+					scheduleTranslation(finalTranscript.trim());
+					
+					// Enable action buttons when we have final text
+					toggleActionButtons(true);
+				}
+				
+				// Update interim display
+				if (interimResult) {
+					interimTranscript = interimResult;
+					elements.messageText.textContent = interimTranscript;
+					elements.resultBox.classList.remove('hidden');
+				} else if (!interimTranscript) {
+					// Hide interim box if no interim text
+					elements.messageText.textContent = '';
+					elements.resultBox.classList.add('hidden');
+				}
+			}
 
-                recognition.onstart = () => {
-                    isRecording = true;
-                    elements.status.innerHTML = '<i class="fas fa-microphone"></i><span>Đang nghe... Nói điều gì đó</span>';
-                    elements.micBtn.innerHTML = '<i class="fas fa-stop"></i>';
-                    elements.micBtn.title = 'Dừng ghi âm';
-                    elements.micBtn.classList.replace('btn-primary', 'btn-danger');
-                };
+			// Start speech recognition with error handling
+			function startRecognition() {
+				try {
+					if (!recognition) {
+						if (!initSpeechRecognition()) return;
+					}
+					
+					// Configure for current language
+					recognition.lang = currentLang;
+					
+					// Start recording
+					recognition.start();
+					isRecording = true;
+					recognitionPaused = false;
+					
+					// Update UI
+					updateMicButtonState(true);
+					showStatus('recording', 'Đang nghe... Nói điều gì đó');
+					
+					// Set up silence detection
+					startSilenceDetection();
+				} catch (error) {
+					console.error("Error starting recognition:", error);
+					showStatus('error', `Không thể bắt đầu ghi âm: ${error.message}`);
+					updateMicButtonState(false);
+				}
+			}
 
-                recognition.onend = () => {
-                    isRecording = false;
-                    elements.status.innerHTML = '<i class="fas fa-check-circle"></i><span>Đã dừng ghi âm</span>';
-                    elements.micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-                    elements.micBtn.title = 'Bắt đầu ghi âm';
-                    elements.micBtn.classList.replace('btn-danger', 'btn-primary');
-                    toggleActionButtons(!!elements.editableText.value.trim());
-                };
+			// Stop speech recognition with error handling
+			function stopRecognition() {
+				try {
+					if (recognition) {
+						recognition.stop();
+					}
+					
+					// Clear silence detection
+					if (recognitionTimeout) {
+						clearTimeout(recognitionTimeout);
+						recognitionTimeout = null;
+					}
+					
+					// Update state
+					isRecording = false;
+					recognitionPaused = false;
+					
+					// Update UI
+					updateMicButtonState(false);
+					showStatus('ready', 'Đã dừng ghi âm');
+				} catch (error) {
+					console.error("Error stopping recognition:", error);
+					showStatus('error', `Lỗi khi dừng ghi âm: ${error.message}`);
+				}
+			}
 
-                recognition.onerror = event => {
-                    isRecording = false;
-                    elements.micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
-                    elements.micBtn.title = 'Bắt đầu ghi âm';
-                    elements.micBtn.classList.replace('btn-danger', 'btn-primary');
-                    
-                    const errorMessages = {
-                        'no-speech': 'Không phát hiện giọng nói',
-                        'audio-capture': 'Không thể truy cập microphone',
-                        'not-allowed': 'Microphone bị chặn',
-                        'network': 'Lỗi kết nối mạng',
-                        'aborted': 'Nhận diện bị hủy',
-                        default: `Lỗi: ${event.error}`
-                    };
-                    
-                    elements.status.innerHTML = `<i class="fas fa-exclamation-circle"></i><span>${errorMessages[event.error] || errorMessages.default}</span>`;
-                };
-            }
+			// Handle recognition start event
+			function handleRecognitionStart() {
+				isRecording = true;
+				updateMicButtonState(true);
+				
+				// Add visual indicator for recording
+				const speechProgressIndicator = document.createElement('div');
+				speechProgressIndicator.className = 'speech-progress';
+				speechProgressIndicator.innerHTML = `
+					<div class="bar"></div>
+					<div class="bar"></div>
+					<div class="bar"></div>
+					<div class="bar"></div>
+					<div class="bar"></div>
+				`;
+				elements.status.appendChild(speechProgressIndicator);
+			}
 
-            // Handle tab switching
-            elements.tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
-                    // Update tab UI
-                    elements.tabs.forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    
-                    // Update language and placeholder
-                    currentLang = tab.dataset.lang;
-                    elements.editableText.placeholder = {
-                        'vi-VN': 'Tin nhắn của bạn sẽ xuất hiện ở đây...',
-                        'ja-JP': 'メッセージはここに表示されます...',
-						'en-US': 'Your message will appear here...'
-					}[currentLang];
-                    
-                    // Reset buffers on language change
-                    interimBuffer = '';
-                    finalBuffer = elements.editableText.value.trim();
-                    
-                    // Update recognition language
-                    if (recognition) {
-                        const wasRecording = isRecording;
-                        if (wasRecording) recognition.stop();
-                        recognition.lang = currentLang;
-                        if (wasRecording) setTimeout(() => recognition.start(), 100);
-                    }
-                    
-                    elements.status.innerHTML = `<i class="fas fa-info-circle"></i><span>Đã chuyển sang ${currentLang === 'vi-VN' ? 'Tiếng Việt' : 'Tiếng Nhật'}</span>`;
-                    
-                    // Retranslate current text if exists
-                    if (elements.editableText.value.trim()) {
-                        displayTranslation(elements.editableText.value.trim());
-                    }
-                });
-            });
+			// Handle recognition end event
+			function handleRecognitionEnd() {
+				isRecording = false;
+				updateMicButtonState(false);
+				
+				// Process any pending interim results if we have them
+				if (interimTranscript.trim()) {
+					finalTranscript += interimTranscript.trim() + ' ';
+					elements.editableText.value = finalTranscript.trim();
+					scheduleTranslation(finalTranscript.trim());
+					
+					// Clear interim display
+					interimTranscript = '';
+					elements.messageText.textContent = '';
+					elements.resultBox.classList.add('hidden');
+				}
+				
+				// Enable buttons if we have text
+				toggleActionButtons(!!elements.editableText.value.trim());
+				
+				// Auto-restart if speech ended unexpectedly but not paused or stopped manually
+				if (isRecording && !recognitionPaused) {
+					console.log("Recognition ended unexpectedly, restarting...");
+					setTimeout(() => {
+						if (isRecording && !recognitionPaused) {
+							try {
+								recognition.start();
+							} catch (e) {
+								console.error("Failed to restart recognition:", e);
+								isRecording = false;
+								showStatus('error', 'Không thể tiếp tục ghi âm');
+							}
+						}
+					}, 500);
+				}
+			}
 
-            // Event listeners
-            elements.editableText.addEventListener('input', () => {
-                // Update final buffer when user types directly
-                finalBuffer = elements.editableText.value.trim();
-                toggleActionButtons(!!finalBuffer);
-                displayTranslation(finalBuffer);
-            });
+			// Handle recognition errors
+			function handleRecognitionError(event) {
+				console.error("Recognition error:", event.error);
+				
+				const errorMessages = {
+					'no-speech': 'Không phát hiện giọng nói',
+					'audio-capture': 'Không thể truy cập microphone',
+					'not-allowed': 'Vui lòng cho phép truy cập microphone',
+					'network': 'Lỗi kết nối mạng',
+					'aborted': 'Nhận diện bị hủy',
+					'language-not-supported': 'Ngôn ngữ không được hỗ trợ',
+					'service-not-allowed': 'Dịch vụ nhận diện không có sẵn',
+					'bad-grammar': 'Lỗi ngữ pháp nhận diện',
+					default: `Lỗi nhận diện: ${event.error}`
+				};
+				
+				const errorMessage = errorMessages[event.error] || errorMessages.default;
+				
+				// Fatal errors that should stop recognition
+				if (['not-allowed', 'audio-capture', 'network', 'language-not-supported', 'service-not-allowed'].includes(event.error)) {
+					isRecording = false;
+					recognitionPaused = false;
+					updateMicButtonState(false);
+					showStatus('error', errorMessage);
+				} else {
+					// Non-fatal errors, show warning but continue if still recording
+					showStatus('warning', errorMessage);
+					
+					// Try to restart recognition for non-fatal errors
+					if (isRecording && !recognitionPaused) {
+						setTimeout(() => {
+							try {
+								recognition.start();
+							} catch (e) {
+								console.error("Failed to restart after error:", e);
+								isRecording = false;
+								showStatus('error', 'Không thể tiếp tục ghi âm');
+								updateMicButtonState(false);
+							}
+						}, 1000);
+					}
+				}
+			}
 
-            elements.micBtn.addEventListener('click', () => {
+			// Update the mic button appearance based on recording state
+			function updateMicButtonState(recording) {
+				if (recording) {
+					elements.micBtn.innerHTML = '<i class="fas fa-stop"></i>';
+					elements.micBtn.title = 'Dừng ghi âm';
+					elements.micBtn.classList.replace('btn-primary', 'btn-danger');
+				} else {
+					elements.micBtn.innerHTML = '<i class="fas fa-microphone"></i>';
+					elements.micBtn.title = 'Bắt đầu ghi âm';
+					elements.micBtn.classList.replace('btn-danger', 'btn-primary');
+				}
+			}
+
+			// Show status message with appropriate icon
+			function showStatus(type, message) {
+				const icons = {
+					'info': 'fa-info-circle',
+					'success': 'fa-check-circle',
+					'warning': 'fa-exclamation-circle',
+					'error': 'fa-exclamation-triangle',
+					'recording': 'fa-microphone',
+					'processing': 'fa-cog fa-spin',
+					'ready': 'fa-info-circle'
+				};
+				
+				elements.status.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i><span>${message}</span>`;
+				
+				// Add visual indicator for recording state
+				if (type === 'recording') {
+					const speechProgressIndicator = document.createElement('div');
+					speechProgressIndicator.className = 'speech-progress';
+					speechProgressIndicator.innerHTML = `
+						<div class="bar"></div>
+						<div class="bar"></div>
+						<div class="bar"></div>
+						<div class="bar"></div>
+						<div class="bar"></div>
+					`;
+					elements.status.appendChild(speechProgressIndicator);
+				}
+			}
+
+			// Toggle recognition on/off
+			function toggleRecognition() {
+				if (isRecording) {
+					stopRecognition();
+				} else {
+					// Clear buffers if starting fresh
+					if (!elements.editableText.value.trim()) {
+						finalTranscript = '';
+						interimTranscript = '';
+					} else {
+						// If continuing with existing text, initialize final transcript
+						finalTranscript = elements.editableText.value.trim() + ' ';
+					}
+					
+					startRecognition();
+				}
+			}
+
+			// Schedule translation with debounce
+			function scheduleTranslation(text) {
+				// Clear any pending translation
+				if (translationDebounceTimer) {
+					clearTimeout(translationDebounceTimer);
+				}
+				
+				// Schedule new translation with delay
+				translationDebounceTimer = setTimeout(() => {
+					displayTranslation(text);
+				}, 800); // 800ms debounce
+			}
+
+			// Detect silence to auto-stop recording after period of silence
+			function startSilenceDetection() {
+				if (recognitionTimeout) {
+					clearTimeout(recognitionTimeout);
+				}
+				
+				recognitionTimeout = setTimeout(() => {
+					// Check if we're still recording and have had no new results
+					if (isRecording) {
+						consecutiveSilenceCount++;
+						
+						// After 5 silence checks (about 10 seconds), auto-stop
+						if (consecutiveSilenceCount >= 5) {
+							console.log("Silence detected, stopping recognition");
+							stopRecognition();
+							showStatus('info', 'Đã dừng ghi âm do im lặng');
+							return;
+						}
+						
+						// Continue checking for silence
+						startSilenceDetection();
+					}
+				}, 2000); // Check every 2 seconds
+			}
+
+			// Reset recognition for new session
+			function resetRecognition() {
+				// Stop any active recognition
+				if (isRecording) {
+					stopRecognition();
+				}
+				
+				// Clear all timers
+				if (recognitionTimeout) {
+					clearTimeout(recognitionTimeout);
+					recognitionTimeout = null;
+				}
+				
+				if (translationDebounceTimer) {
+					clearTimeout(translationDebounceTimer);
+					translationDebounceTimer = null;
+				}
+				
+				// Clear transcripts
+				finalTranscript = '';
+				interimTranscript = '';
+				consecutiveSilenceCount = 0;
+				
+				// Reset UI elements
+				elements.messageText.textContent = '';
+				elements.editableText.value = '';
+				elements.resultBox.classList.add('hidden');
+			}
+
+			// Change recognition language
+			function changeRecognitionLanguage(newLang) {
+				currentLang = newLang;
+				
+				// Update recognition instance if it exists
+				if (recognition) {
+					const wasRecording = isRecording;
+					
+					// Stop current recognition
+					if (wasRecording) {
+						stopRecognition();
+					}
+					
+					// Update language
+					recognition.lang = currentLang;
+					
+					// Restart if it was active
+					if (wasRecording) {
+						// Short delay to ensure clean restart
+						setTimeout(() => {
+							startRecognition();
+						}, 300);
+					}
+				}
+			}
+
+			// Event listener for mic button
+			elements.micBtn.addEventListener('click', () => {
+				// Clear autosave when starting new recording
 				localStorage.removeItem('autosave');
-                if (!recognition) setupRecognition();
-                
-                if (!isRecording) {
-                    // If starting a new recording session
-                    if (!elements.editableText.value.trim()) {
-                        // Clear buffers if textarea is empty
-                        finalBuffer = '';
-                        interimBuffer = '';
-                    }
-                    recognition.start();
-                } else {
-                    recognition.stop();
-                }
-            });
+				toggleRecognition();
+			});
 
-            elements.suggestBtn.addEventListener('click', suggestImprovedExpression);
+			// Event listener for tab switching (language change)
+			elements.tabs.forEach(tab => {
+				tab.addEventListener('click', () => {
+					// Update UI
+					elements.tabs.forEach(t => t.classList.remove('active'));
+					tab.classList.add('active');
+					
+					// Get new language
+					const newLang = tab.dataset.lang;
+					
+					// Update placeholders and UI text
+					updateUILanguage(newLang);
+					
+					// Change recognition language
+					changeRecognitionLanguage(newLang);
+					
+					// Show status
+					const langNames = {
+						'vi-VN': 'Tiếng Việt',
+						'ja-JP': 'Tiếng Nhật',
+						'en-US': 'Tiếng Anh'
+					};
+					showStatus('info', `Đã chuyển sang ${langNames[newLang] || newLang}`);
+					
+					// Retranslate current text if exists
+					if (elements.editableText.value.trim()) {
+						displayTranslation(elements.editableText.value.trim());
+					}
+				});
+			});
 
-            elements.speakBtn.addEventListener('click', speakText);
+			// Handle user typing directly into textarea
+			elements.editableText.addEventListener('input', () => {
+				// Update final transcript when user types
+				finalTranscript = elements.editableText.value.trim();
+				
+				// Enable action buttons if text exists
+				toggleActionButtons(!!finalTranscript);
+				
+				// Schedule translation
+				scheduleTranslation(finalTranscript);
+			});
 
-            elements.saveBtn.addEventListener('click', () => {
-                const textToSave = elements.editableText.value.trim();
-                if (!textToSave) return;
-                
-                const translationToSave = elements.translationText.textContent.trim();
-                
-                const history = JSON.parse(localStorage.getItem('chatHistory') || '[]');
-                history.push({
-                    text: textToSave,
-                    translation: translationToSave,
-                    language: currentLang,
-                    timestamp: new Date().toISOString()
-                });
-                localStorage.setItem('chatHistory', JSON.stringify(history));
-                elements.status.innerHTML = '<i class="fas fa-check-circle"></i><span>Đã lưu!</span>';
-                setTimeout(() => {
-                    elements.status.innerHTML = '<i class="fas fa-info-circle"></i><span>Sẵn sàng</span>';
-                }, 2000);
-            });
+			// Add support for keyboard shortcuts
+			document.addEventListener('keydown', (event) => {
+				// Space key to toggle recording (only when no input fields are focused)
+				if (event.code === 'Space' && document.activeElement !== elements.editableText) {
+					event.preventDefault();
+					toggleRecognition();
+				}
+			});
 
-            elements.clearBtn.addEventListener('click', clearAll);
+			// Init on page load
+			function initializeSpeechRecognition() {
+				// Initialize speech recognition
+				initSpeechRecognition();
+				
+				// Set initial status
+				showStatus('ready', 'Nhấn nút microphone và nói...');
+			}
 
-            // Show history
-            elements.historyBtn.addEventListener('click', showHistory);
+			// Update UI text based on selected language
+			function updateUILanguage(lang) {
+				// Update textarea placeholder
+				elements.editableText.placeholder = {
+					'vi-VN': 'Tin nhắn của bạn sẽ xuất hiện ở đây...',
+					'ja-JP': 'メッセージはここに表示されます...',
+					'en-US': 'Your message will appear here...'
+				}[lang] || 'Nhập tin nhắn...';
+				
+				// Update other UI elements as needed
+				elements.suggestionsTitle.textContent = {
+					'vi-VN': 'Có phải bạn muốn nói là:',
+					'ja-JP': 'もしかして言いたかったのは：',
+					'en-US': 'Did you mean:'
+				}[lang] || 'Gợi ý:';
+			}
 
-            // Initialize
-            setupRecognition();
-
-            // Add support for keyboard shortcuts
-            document.addEventListener('keydown', (event) => {
-                // Space key to toggle recording (only when no input fields are focused)
-                if (event.code === 'Space' && document.activeElement !== elements.editableText) {
-                    event.preventDefault();
-                    elements.micBtn.click();
-                }
-                
-                // Ctrl+Enter or Cmd+Enter to suggest improved expressions
-                if ((event.ctrlKey || event.metaKey) && event.code === 'Enter' && !elements.suggestBtn.disabled) {
-                    event.preventDefault();
-                    elements.suggestBtn.click();
-                }
-                
-                // Alt+S to speak text
-                if (event.altKey && event.code === 'KeyS' && !elements.speakBtn.disabled) {
-                    event.preventDefault();
-                    elements.speakBtn.click();
-                }
-            });
-
-            // History viewer functionality
-            function showHistory() {
-                const history = JSON.parse(localStorage.getItem('chatHistory') || '[]');
-                if (history.length === 0) {
-                    elements.status.innerHTML = '<i class="fas fa-info-circle"></i><span>Lịch sử trống</span>';
-                    return;
-                }
-                
-                // Create a dialog to show history
-                const historyDialog = document.createElement('div');
-                historyDialog.classList.add('history-dialog');
-                historyDialog.style.position = 'fixed';
-                historyDialog.style.top = '50%';
-                historyDialog.style.left = '50%';
-                historyDialog.style.transform = 'translate(-50%, -50%)';
-                historyDialog.style.backgroundColor = 'var(--bg-card)';
-                historyDialog.style.padding = '20px';
-                historyDialog.style.borderRadius = 'var(--border-radius)';
-                historyDialog.style.boxShadow = 'var(--box-shadow)';
-                historyDialog.style.zIndex = '1000';
-                historyDialog.style.maxWidth = '90%';
-                historyDialog.style.maxHeight = '80vh';
-                historyDialog.style.overflow = 'auto';
-                historyDialog.style.border = '1px solid var(--border-color)';
-                
-                // Add close button
-                const closeBtn = document.createElement('button');
-                closeBtn.innerHTML = '<i class="fas fa-times"></i>';
-                closeBtn.style.position = 'absolute';
-                closeBtn.style.top = '10px';
-                closeBtn.style.right = '10px';
-                closeBtn.style.background = 'transparent';
-                closeBtn.style.border = 'none';
-                closeBtn.style.color = 'var(--text-primary)';
-                closeBtn.style.cursor = 'pointer';
-                closeBtn.style.fontSize = '16px';
-                closeBtn.addEventListener('click', () => {
-                    document.body.removeChild(historyDialog);
-                    document.body.removeChild(overlay);
-                });
-                
-                // Add title
-                const title = document.createElement('h2');
-                title.textContent = 'Lịch sử trò chuyện';
-                title.style.marginBottom = '15px';
-                title.style.color = 'var(--primary-color)';
-                
-                historyDialog.appendChild(closeBtn);
-                historyDialog.appendChild(title);
-                
-                // Add history items
-                const historyList = document.createElement('div');
-                historyList.style.display = 'flex';
-                historyList.style.flexDirection = 'column';
-                historyList.style.gap = '10px';
-                
-                history.reverse().forEach((item, index) => {
-                    const historyItem = document.createElement('div');
-                    historyItem.style.padding = '10px';
-                    historyItem.style.backgroundColor = 'var(--bg-darker)';
-                    historyItem.style.borderRadius = 'var(--border-radius)';
-                    historyItem.style.border = '1px solid var(--border-color)';
-                    
-                    const dateOptions = { 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric', 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                    };
-                    const formattedDate = new Date(item.timestamp).toLocaleString('vi-VN', dateOptions);
-                    
-                    historyItem.innerHTML = `
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px">
-                            <span style="color:var(--text-secondary); font-size:14px">
-                                ${item.language === 'vi-VN' ? 'Tiếng Việt' : 'Tiếng Nhật'}
-                            </span>
-                            <span style="color:var(--text-secondary); font-size:14px">${formattedDate}</span>
-                        </div>
-                        <div style="margin-bottom:5px">${item.text}</div>
-                        ${item.translation ? `
-                            <div style="color:var(--text-secondary); margin-top:5px; padding-top:5px; border-top:1px solid var(--border-color)">
-                                ${item.translation}
-                            </div>
-                        ` : ''}
-                        <div style="display:flex; gap:5px; margin-top:10px; justify-content:flex-end">
-                            <button class="load-btn" style="background:var(--primary-color); color:#202124; border:none; padding:5px 10px; border-radius:4px; cursor:pointer">
-                                <i class="fas fa-upload"></i> Tải lên
-                            </button>
-                            <button class="delete-btn" style="background:var(--danger-color); color:#202124; border:none; padding:5px 10px; border-radius:4px; cursor:pointer">
-                                <i class="fas fa-trash"></i> Xóa
-                            </button>
-                        </div>
-                    `;
-                    
-                    // Add event listeners to buttons
-                    historyItem.querySelector('.load-btn').addEventListener('click', () => {
-                        elements.editableText.value = item.text;
-                        finalBuffer = item.text;
-                        toggleActionButtons(true);
-                        displayTranslation(item.text);
-                        document.body.removeChild(historyDialog);
-                        document.body.removeChild(overlay);
-                    });
-                    
-                    historyItem.querySelector('.delete-btn').addEventListener('click', () => {
-                        history.splice(history.length - 1 - index, 1);
-                        localStorage.setItem('chatHistory', JSON.stringify(history));
-                        historyItem.style.opacity = '0.5';
-                        historyItem.style.pointerEvents = 'none';
-                        setTimeout(() => {
-                            historyList.removeChild(historyItem);
-                            if (historyList.children.length === 0) {
-                                document.body.removeChild(historyDialog);
-                                document.body.removeChild(overlay);
-                                elements.status.innerHTML = '<i class="fas fa-info-circle"></i><span>Lịch sử trống</span>';
-                            }
-                        }, 500);
-                    });
-                    
-                    historyList.appendChild(historyItem);
-                });
-                
-                historyDialog.appendChild(historyList);
-                
-                // Add overlay
-                const overlay = document.createElement('div');
-                overlay.style.position = 'fixed';
-                overlay.style.top = '0';
-                overlay.style.left = '0';
-                overlay.style.width = '100%';
-                overlay.style.height = '100%';
-                overlay.style.backgroundColor = 'rgba(0,0,0,0.7)';
-                overlay.style.zIndex = '999';
-                overlay.addEventListener('click', () => {
-                    document.body.removeChild(historyDialog);
-                    document.body.removeChild(overlay);
-                });
-                
-                document.body.appendChild(overlay);
-                document.body.appendChild(historyDialog);
-            }
-
-            // Add error handling for the Web Speech API
-            window.addEventListener('error', (event) => {
-                if (event.message.includes('speech') || event.message.includes('recognition')) {
-                    elements.status.innerHTML = `<i class="fas fa-exclamation-triangle"></i><span>Lỗi nhận diện giọng nói: ${event.message}</span>`;
-                }
-            });
-
-            // Check for browser compatibility on load
-            function checkCompatibility() {
-                // Check for Speech Recognition API
-                const speechRecognitionAvailable = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
-                
-                // Check for Speech Synthesis API
-                const speechSynthesisAvailable = 'speechSynthesis' in window;
-                
-                if (!speechRecognitionAvailable) {
-                    elements.status.innerHTML = '<i class="fas fa-exclamation-triangle"></i><span>Trình duyệt không hỗ trợ nhận diện giọng nói. Hãy dùng Chrome hoặc Edge.</span>';
-                    elements.micBtn.disabled = true;
-                }
-                
-                if (!speechSynthesisAvailable) {
-                    elements.speakBtn.disabled = true;
-                    elements.speakBtn.title = 'Trình duyệt không hỗ trợ phát âm';
-                }
-            }
-
-            // Check network connection
-            function checkNetwork() {
-                const updateNetworkStatus = () => {
-                    if (!navigator.onLine) {
-                        elements.status.innerHTML = '<i class="fas fa-wifi"></i><span>Không có kết nối mạng</span>';
-                        elements.suggestBtn.disabled = true;
-                    } else {
-                        elements.status.innerHTML = '<i class="fas fa-info-circle"></i><span>Kết nối đã được khôi phục</span>';
-                        toggleActionButtons(!!elements.editableText.value.trim());
-                    }
-                };
-                
-                window.addEventListener('online', updateNetworkStatus);
-                window.addEventListener('offline', updateNetworkStatus);
-                
-                // Initial check
-                if (!navigator.onLine) {
-                    elements.status.innerHTML = '<i class="fas fa-wifi"></i><span>Không có kết nối mạng</span>';
-                }
-            }
-
-            // Run compatibility checks
-            checkCompatibility();
-            checkNetwork();
-
-            // Add window focus/blur event listeners to handle recording state
-            window.addEventListener('blur', () => {
-                if (isRecording) {
-                    recognition.stop();
-                    elements.status.innerHTML = '<i class="fas fa-pause-circle"></i><span>Ghi âm tạm dừng do chuyển tab</span>';
-                }
-            });
-
-            // Add support for swipe gestures on mobile
-            let touchStartX = 0;
-            let touchEndX = 0;
-
-            document.addEventListener('touchstart', (e) => {
-                touchStartX = e.changedTouches[0].screenX;
-            });
-
-            document.addEventListener('touchend', (e) => {
-                touchEndX = e.changedTouches[0].screenX;
-                handleSwipe();
-            });
-
-            function handleSwipe() {
-                // Minimum swipe distance (in pixels)
-                const swipeThreshold = 100;
-                
-                if (touchEndX < touchStartX - swipeThreshold) {
-                    // Swipe left - switch to Japanese
-                    if (currentLang !== 'ja-JP') {
-                        document.querySelector('.tab[data-lang="ja-JP"]').click();
-                    }
-                }
-                
-                if (touchEndX > touchStartX + swipeThreshold) {
-                    // Swipe right - switch to Vietnamese
-                    if (currentLang !== 'vi-VN') {
-                        document.querySelector('.tab[data-lang="vi-VN"]').click();
-                    }
-                }
-            }
-
-            // Add functionality to clear interim results without stopping recognition
-            function clearInterimResults() {
-                if (isRecording) {
-                    elements.messageText.textContent = '';
-                    elements.resultBox.classList.add('hidden');
-                    interimBuffer = '';
-                }
-            }
-
-            // Add double-tap on mic button to clear interim results
-            let lastTap = 0;
-            elements.micBtn.addEventListener('dblclick', (e) => {
-                e.preventDefault();
-                clearInterimResults();
-            });
-
-            // For mobile
-            elements.micBtn.addEventListener('touchend', (e) => {
-                const currentTime = new Date().getTime();
-                const tapLength = currentTime - lastTap;
-                if (tapLength < 500 && tapLength > 0) {
-                    clearInterimResults();
-                    e.preventDefault();
-                }
-                lastTap = currentTime;
-            });
-
-            // Add autosave functionality
-            setInterval(() => {
-                const textToSave = elements.editableText.value.trim();
-                if (textToSave) {
-                    localStorage.setItem('autosave', JSON.stringify({
-                        text: textToSave,
-                        language: currentLang,
-                        translation: elements.translationText.textContent.trim(),
-                        timestamp: new Date().toISOString()
-                    }));
-                }
-            }, 10000); // Autosave every 10 seconds
-
-            // Check for autosaved content on load
-            const autosaved = localStorage.getItem('autosave');
-            if (autosaved) {
-                try {
-                    const savedData = JSON.parse(autosaved);
-                    if (savedData.text && new Date().getTime() - new Date(savedData.timestamp).getTime() < 24 * 60 * 60 * 1000) {
-                        // Only restore if less than 24 hours old
-                        elements.editableText.value = savedData.text;
-                        finalBuffer = savedData.text;
-                        
-                        // Switch to the correct language tab if needed
-                        if (savedData.language && savedData.language !== currentLang) {
-                            document.querySelector(`.tab[data-lang="${savedData.language}"]`).click();
-                        } else {
-                            // Just display translation if language is already correct
-                            displayTranslation(savedData.text);
-                        }
-                        
-                        toggleActionButtons(true);
-                        elements.status.innerHTML = '<i class="fas fa-history"></i><span>Nội dung tự động lưu đã được khôi phục</span>';
-                    }
-                } catch (e) {
-                    console.error('Error loading autosaved content:', e);
-                }
-            }
-        });
+			// Call initialization when page loads
+			document.addEventListener('DOMContentLoaded', initializeSpeechRecognition);
     </script>
 </body>
 </html>
