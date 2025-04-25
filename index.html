@@ -446,16 +446,13 @@
 					<button id="speakBtn" class="icon-button btn-primary" title="Phát âm thanh" disabled>
 						<i class="fas fa-volume-up"></i>
 					</button>
-					<button id="saveBtn" class="icon-button btn-secondary" title="Lưu vào lịch sử" disabled>
-						<i class="fas fa-save"></i>
-					</button>
-					<button id="historyBtn" class="icon-button btn-secondary" title="Xem lịch sử">
-						<i class="fas fa-history"></i>
-					</button>
 					<button id="clearBtn" class="icon-button btn-danger" title="Xóa tất cả">
 						<i class="fas fa-trash"></i>
-					</button>
-					
+					</button>	
+					<div class="loading hidden" id="loading">
+						<div class="spinner"></div>
+						<span>Đang xử lý...</span>
+					</div>					
 				</div>
 	
 			<div class="status" id="status">
@@ -468,16 +465,16 @@
 					<div class="bar"></div>
 					<div class="bar"></div>
 				</div>				
-			</div>		
-		
+			</div>	
+	
 			<div id="result" class="text-area result-box" style="white-space: pre-wrap; min-height: 100px;"></div>
 			
 			<div id="translation" class="translation-box">
 				<div class="message" id="translation-text"></div>
 			</div>
 			
-			<textarea id="editableText" class="text-area" placeholder="Tin nhắn của bạn sẽ xuất hiện ở đây..."></textarea>
-		</div>
+			<textarea id="editableText" class="text-area" placeholder="Editable..."></textarea>
+			</div>
 
         <div id="corrections" class="suggestions hidden">
             <div class="suggestions-title">
@@ -516,9 +513,7 @@
 				micBtn: document.getElementById('micBtn'),
 				suggestBtn: document.getElementById('suggestBtn'),
 				speakBtn: document.getElementById('speakBtn'),
-				saveBtn: document.getElementById('saveBtn'),
 				clearBtn: document.getElementById('clearBtn'),
-				historyBtn: document.getElementById('historyBtn'),
 				tabs: document.querySelectorAll('.tab'),
 				translationText: document.getElementById('translation-text'),
 				editableText: document.getElementById('editableText'),
@@ -532,7 +527,8 @@
 				suggestionTranslation: document.getElementById('suggestionTranslation'),
 				vocabBtn: document.getElementById('vocabBtn'),
 				vocabBox: document.getElementById('vocabBox'),
-				vocabList: document.getElementById('vocabList')
+				vocabList: document.getElementById('vocabList'),
+				loading: document.getElementById('loading')
             };
 
             const GEMINI_API_KEY = "AIzaSyDaROReiR48rjfavf8Lk6XvphC6QxKPZo4";
@@ -1167,7 +1163,6 @@
 				// Chỉ bật các nút khi có văn bản
 				elements.speakBtn.disabled = !hasText;
 				elements.suggestBtn.disabled = !hasText;
-				elements.saveBtn.disabled = !hasText;
 				elements.vocabBtn.disabled = !hasText; 
 				
 				// Cập nhật giao diện nếu không có văn bản
@@ -1253,8 +1248,6 @@
 					// Cập nhật trạng thái
 					showStatus(isRecording ? 'recording' : 'success', isRecording ? 'Đang nghe...' : 'Đã dịch xong');
 					
-					// Cho phép lưu kết quả
-					elements.saveBtn.disabled = false;
 				} catch (error) {
 					console.error("Lỗi dịch:", error);
 					elements.translationText.textContent = `Không thể dịch: ${error.message}`;
