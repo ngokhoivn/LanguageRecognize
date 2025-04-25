@@ -1221,69 +1221,7 @@
 				translationDebounceTimer = setTimeout(() => {
 					displayTranslation(text);
 				}, delay);
-			}
-
-			// Hàm dịch sử dụng API Gemini
-			async function translateWithGemini(text, sourceLang, targetLang) {
-				// Ánh xạ mã ngôn ngữ Web Speech API sang mã ngôn ngữ cho API Gemini
-				const languageMap = {
-					'vi-VN': 'Vietnamese',
-					'en-US': 'English',
-					'ja-JP': 'Japanese'
-				};
-				
-				// Chuyển đổi mã ngôn ngữ
-				const sourceLanguage = languageMap[sourceLang] || 'Vietnamese';
-				const targetLanguage = languageMap[targetLang] || 'English';
-				
-				// Tạo prompt cho Gemini
-				const prompt = `Translate the following text from ${sourceLanguage} to ${targetLanguage}. 
-			Only respond with the translated text, nothing else:
-
-			${text}`;
-				
-				try {
-					// Cấu hình request
-					const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
-					const response = await fetch(`${apiUrl}?key=${GEMINI_API_KEY}`, {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-						},
-						body: JSON.stringify({
-							contents: [{
-								parts: [{
-									text: prompt
-								}]
-							}],
-							generationConfig: {
-								temperature: 0.2,
-								topK: 40,
-								topP: 0.95,
-								maxOutputTokens: 1024,
-							}
-						})
-					});
-					
-					// Xử lý phản hồi
-					if (!response.ok) {
-						const errorData = await response.json();
-						throw new Error(`API error: ${errorData.error?.message || response.statusText}`);
-					}
-					
-					const data = await response.json();
-					
-					// Kiểm tra và trích xuất văn bản dịch
-					if (data.candidates && data.candidates[0]?.content?.parts && data.candidates[0].content.parts[0]?.text) {
-						return data.candidates[0].content.parts[0].text.trim();
-					} else {
-						throw new Error('Không nhận được bản dịch từ API');
-					}
-				} catch (error) {
-					console.error('Lỗi khi gọi API Gemini:', error);
-					throw new Error(`Không thể dịch: ${error.message}`);
-				}
-			}			
+			}		
     </script>
 </body>
 </html>
