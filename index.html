@@ -103,21 +103,33 @@
 			overflow-x: auto;
         }
 
-        .icon-button {
-            width: 40px;
-            height: 40px;
-            padding: 0;
-            border-radius: 50%;
-            font-size: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background-color: var(--bg-darker);
-            color: var(--text-primary);
-        }
+		.icon-button {
+			width: 40px;
+			height: 40px;
+			padding: 0;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			flex-shrink: 0;
+			border-radius: 50%;
+			border: none;
+			cursor: pointer;
+			transition: all 0.3s ease;
+			font-size: 16px;
+		}
+
+		.button-group-horizontal {
+			display: flex;
+			gap: 10px;
+			align-items: center; /* Căn giữa theo chiều dọc */
+		}
+		
+		.vertical-group {
+			display: flex;
+			flex-direction: column;
+			gap: 12px; /* khoảng cách giữa các box */
+			width: 100%;
+		}
 
         .btn-primary {
             background-color: var(--primary-color);
@@ -184,9 +196,8 @@
             font-size: 16px;
             line-height: 1.6;
             color: var(--text-primary);
-			min-height: 6em; /* khoảng 5 dòng với font-size 16px và line-height 1.6 */
-			max-height: 8em; /* ngăn không cho dài quá */
-			overflow-y: auto; /* hiện thanh cuộn nếu dài */
+			min-height: 2em; 
+			max-height: 4em; 			
 			transition: none; /* tránh animation làm nhấp nhô */
         }
 
@@ -197,6 +208,7 @@
             background-color: var(--bg-darker);
             font-size: 16px;
             line-height: 1.6;
+			min-height: 6em;
             color: var(--text-primary);
         }
 
@@ -309,8 +321,7 @@
         }
 
         .result-box.hidden, .translation-box.hidden {
-            visibility: hidden;
-			opacity: 0;
+            display: none;
         }
 
         /* Pulse animation for recording state */
@@ -370,7 +381,7 @@
         @media (max-width: 600px) {
             .chat-container {
                 border-radius: 0;
-                max-width: 100%;
+                max-width: 100vw;
                 height: 100vh;
                 padding: 15px;
             }
@@ -424,30 +435,26 @@
         </div>
 
         <div class="toolbar">
-            <div class="controls-group">
-                <button id="micBtn" class="icon-button btn-primary" title="Bắt đầu ghi âm" aria-label="Bắt đầu ghi âm">
-                    <i class="fas fa-microphone"></i>
-                </button>
-                <button id="suggestBtn" class="icon-button btn-primary" title="Có phải bạn muốn nói là:" disabled aria-label="Gợi ý cách nói">
-                    <i class="fas fa-lightbulb"></i>
-                </button>
-                <button id="speakBtn" class="icon-button btn-primary" title="Phát âm thanh" disabled aria-label="Phát âm thanh">
-                    <i class="fas fa-volume-up"></i>
-                </button>
-            </div>
-
-            <div class="controls-group">
-                <button id="saveBtn" class="icon-button btn-secondary" title="Lưu vào lịch sử" disabled aria-label="Lưu vào lịch sử">
-                    <i class="fas fa-save"></i>
-                </button>
-                <button id="historyBtn" class="icon-button btn-secondary" title="Xem lịch sử" aria-label="Xem lịch sử">
-                    <i class="fas fa-history"></i>
-                </button>
-                <button id="clearBtn" class="icon-button btn-danger" title="Xóa tất cả" aria-label="Xóa tất cả">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        </div>
+			<div class="button-group-horizontal">
+				<button id="micBtn" class="icon-button btn-primary" title="Bắt đầu ghi âm">
+					<i class="fas fa-microphone"></i>
+				</button>
+				<button id="suggestBtn" class="icon-button btn-primary" title="Gợi ý cách nói" disabled>
+					<i class="fas fa-lightbulb"></i>
+				</button>
+				<button id="speakBtn" class="icon-button btn-primary" title="Phát âm thanh" disabled>
+					<i class="fas fa-volume-up"></i>
+				</button>
+				<button id="saveBtn" class="icon-button btn-secondary" title="Lưu vào lịch sử" disabled>
+					<i class="fas fa-save"></i>
+				</button>
+				<button id="historyBtn" class="icon-button btn-secondary" title="Xem lịch sử">
+					<i class="fas fa-history"></i>
+				</button>
+				<button id="clearBtn" class="icon-button btn-danger" title="Xóa tất cả">
+					<i class="fas fa-trash"></i>
+				</button>
+			</div>
 
         <div class="status" id="status">
 			<span id="status-icon"><i class="fas fa-info-circle"></i></span>
@@ -460,16 +467,16 @@
 				<div class="bar"></div>
 			</div>				
         </div>
-
-        <div id="result" class="result-box hidden">
-            <div class="message" id="message-text"></div>
-        </div>
 		
-        <div id="translation" class="translation-box">
-            <div class="message" id="translation-text"></div>
-        </div>
-		
-        <textarea id="editableText" class="text-area" placeholder="Tin nhắn của bạn sẽ xuất hiện ở đây..."></textarea>
+		<div class="vertical-group">
+			<div id="result" class="text-area result-box" style="white-space: pre-wrap; min-height: 100px;"></div>
+			
+			<div id="translation" class="translation-box">
+				<div class="message" id="translation-text"></div>
+			</div>
+			
+			<textarea id="editableText" class="text-area" placeholder="Tin nhắn của bạn sẽ xuất hiện ở đây..."></textarea>
+		</div>
 
         <div class="loading hidden" id="loading">
             <div class="spinner"></div>
@@ -484,12 +491,26 @@
             <div id="suggestions"></div>
 			
 			<!-- Nút dịch gợi ý -->
-			<button id="translateSuggestionBtn" class="icon-button btn-secondary" style="margin-top: 10px;" disabled>
-				<i class="fas fa-language"></i>
-			</button>
+			<div class="button-group-horizontal">
+				<button id="translateSuggestionBtn" class="icon-button btn-secondary" title="Gợi ý dịch" disabled>
+					<i class="fas fa-language"></i> 
+				</button>
+				
+				<button id="vocabBtn" class="icon-button btn-secondary" title="Gợi ý từ vựng" disabled>
+				  <i class="fas fa-book"></i>
+				</button>
+			</div>
 			
 			<!-- Kết quả dịch gợi ý -->
 			<div id="suggestionTranslation" class="translation-box hidden" style="margin-top: 10px;"></div>
+			
+			<div id="vocabBox" class="suggestions hidden" style="margin-top: 10px;">
+				<div class="suggestions-title">
+					<i class="fas fa-book-open"></i>
+					<span>Gợi ý từ vựng liên quan:</span>
+				</div>
+				<div id="vocabList"></div>
+			</div>			
         </div>
     </div>
 
@@ -514,7 +535,10 @@
 				translationBox: document.getElementById('translation'),
 				correctionsBox: document.getElementById('corrections'),
 				translateSuggestionBtn: document.getElementById('translateSuggestionBtn'),
-				suggestionTranslation: document.getElementById('suggestionTranslation')
+				suggestionTranslation: document.getElementById('suggestionTranslation'),
+				vocabBtn: document.getElementById('vocabBtn'),
+				vocabBox: document.getElementById('vocabBox'),
+				vocabList: document.getElementById('vocabList')
             };
 
             const GEMINI_API_KEY = "AIzaSyDaROReiR48rjfavf8Lk6XvphC6QxKPZo4";
@@ -610,12 +634,11 @@
 				// Update interim display
 				if (interimResult) {
 					interimTranscript = interimResult;
-					elements.messageText.textContent = interimTranscript;
+					elements.resultBox.textContent = interimTranscript;
 					elements.resultBox.classList.remove('hidden');
 				} else if (!interimTranscript) {
 					// Hide interim box if no interim text
-					elements.messageText.textContent = '';
-					elements.resultBox.classList.add('hidden');
+					elements.messageText.textContent = '';					
 				}
 			}
 
@@ -952,6 +975,27 @@
 					elements.loading.classList.add('hidden');
 				}
 			});
+			
+			// Nút gợi ý từ vựng
+			elements.vocabBtn.addEventListener('click', async () => {
+				const text = elements.editableText.value.trim();
+				if (!text) return;
+
+				showStatus('processing', 'Đang lấy từ vựng...');
+				elements.loading.classList.remove('hidden');
+
+				try {
+					const vocabHTML = await suggestVocabularyWithGemini(text, currentLang, 'tab');
+					elements.vocabList.innerHTML = vocabHTML;
+					elements.vocabBox.classList.remove('hidden');
+					showStatus('success', 'Đã gợi ý từ vựng');
+				} catch (error) {
+					console.error('Lỗi từ vựng:', error);
+					showStatus('error', 'Không thể lấy từ vựng');
+				} finally {
+					elements.loading.classList.add('hidden');
+				}
+			});
 
 
 			// Event listener for tab switching (language change)
@@ -1155,6 +1199,7 @@
 				elements.speakBtn.disabled = !hasText;
 				elements.suggestBtn.disabled = !hasText;
 				elements.saveBtn.disabled = !hasText;
+				elements.vocabBtn.disabled = !hasText; 
 				
 				// Cập nhật giao diện nếu không có văn bản
 				if (!hasText) {
@@ -1312,6 +1357,73 @@
 				}
 			}
 			
+			async function suggestVocabularyWithGemini(text, lang, format = 'tab') {
+				// Xác định ngôn ngữ
+				const languageMap = {
+					'vi-VN': 'Vietnamese',
+					'en-US': 'English',
+					'ja-JP': 'Japanese'
+				};
+				const language = languageMap[lang] || 'English';
+
+				// Tạo prompt phù hợp với ngôn ngữ
+				let prompt;
+				if (lang === 'ja-JP') {
+					prompt = `Extract Japanese vocabulary from this sentence in format: Kanji - Hiragana - Vietnamese meaning. If no vocabulary found, reply "No vocabulary". Only list vocabulary, no explanations:\n\n"${text}"`;
+				} else {
+					prompt = `Extract important vocabulary words from this ${language} sentence with Vietnamese translations. Format each as: Word - Translation. If none, reply "No vocabulary". Only list words:\n\n"${text}"`;
+				}
+
+				const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						contents: [{ parts: [{ text: prompt }] }],
+						generationConfig: {
+							temperature: 0.3,
+							topK: 40,
+							topP: 0.95,
+							maxOutputTokens: 512,
+						}
+					})
+				});
+
+				const data = await response.json();
+				if (!data.candidates || !data.candidates[0]?.content?.parts[0]?.text) {
+					throw new Error('Không nhận được từ vựng từ API');
+				}
+
+				const rawText = data.candidates[0].content.parts[0].text.trim();
+
+				if (rawText.toLowerCase().includes('no vocabulary')) {
+					return '<i>Không có từ vựng nào được phát hiện.</i>';
+				}
+
+				// Xử lý định dạng tab
+				if (format === 'tab') {
+					const rows = rawText.split('\n')
+						.filter(line => line.trim() && line.includes('-'))
+						.map(line => line.split('-').map(s => s.trim()).join('\t'));
+					return `<pre>${rows.join('\n')}</pre>`;
+				} else {
+					// Xử lý định dạng table
+					const rows = rawText.split('\n')
+						.filter(line => line.trim() && line.includes('-'))
+						.map(line => {
+							const [word, translation] = line.split('-').map(s => s.trim());
+							return `<tr><td>${word}</td><td>${translation}</td></tr>`;
+						});
+					
+					return `
+						<table border="1" cellpadding="5" style="border-collapse: collapse; width: 100%;">
+							<tr style="background-color: #222;">
+								<th>Từ vựng</th><th>Nghĩa</th>
+							</tr>
+							${rows.join('\n')}
+						</table>
+					`;
+				}
+			}	
     </script>
 </body>
 </html>
