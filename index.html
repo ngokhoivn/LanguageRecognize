@@ -455,6 +455,11 @@
 					<button id="clearBtn" class="icon-button btn-danger" title="Xóa tất cả">
 						<i class="fas fa-trash"></i>
 					</button>
+					
+					<div class="loading hidden" id="loading">
+						<div class="spinner"></div>
+						<span>Đang xử lý...</span>
+					</div>
 				</div>
 	
 			<div class="status" id="status">
@@ -477,11 +482,6 @@
 			
 			<textarea id="editableText" class="text-area" placeholder="Tin nhắn của bạn sẽ xuất hiện ở đây..."></textarea>
 		</div>
-
-        <div class="loading hidden" id="loading">
-            <div class="spinner"></div>
-            <span>Đang xử lý...</span>
-        </div>
 
         <div id="corrections" class="suggestions hidden">
             <div class="suggestions-title">
