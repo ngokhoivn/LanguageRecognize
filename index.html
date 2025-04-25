@@ -520,13 +520,11 @@
 				clearBtn: document.getElementById('clearBtn'),
 				historyBtn: document.getElementById('historyBtn'),
 				tabs: document.querySelectorAll('.tab'),
-				messageText: document.getElementById('message-text'),
 				translationText: document.getElementById('translation-text'),
 				editableText: document.getElementById('editableText'),
 				status: document.getElementById('status'),
 				suggestions: document.getElementById('suggestions'),
 				suggestionsTitle: document.getElementById('suggestions-title-text'),
-				loading: document.getElementById('loading'),
 				resultBox: document.getElementById('result'),
 				translationBox: document.getElementById('translation'),
 				correctionsBox: document.getElementById('corrections'),
@@ -592,49 +590,34 @@
 
 			// Handle speech recognition results
 			function handleRecognitionResult(event) {
-				// Reset the silence counter since we got a result
 				consecutiveSilenceCount = 0;
-				
-				// Get the current recognition result
+
 				let interimResult = '';
 				let finalResult = '';
-				
-				// Process all results in this event
+
 				for (let i = event.resultIndex; i < event.results.length; i++) {
 					const transcript = event.results[i][0].transcript.trim();
-					
 					if (event.results[i].isFinal) {
 						finalResult += transcript + ' ';
-						// Clear any interim display of this text
 						interimTranscript = interimTranscript.replace(transcript, '').trim();
 					} else {
 						interimResult += transcript + ' ';
 					}
 				}
-				
-				// Update our transcripts
+
 				if (finalResult) {
 					finalTranscript += finalResult;
 					lastRecognitionResult = finalResult;
-					
-					// Update the editable field with clean content
-					elements.editableText.value = finalTranscript.trim();
-					
-					// Schedule translation with debounce
-					scheduleTranslation(finalTranscript.trim());
-					
-					// Enable action buttons when we have final text
+					const trimmed = finalTranscript.trim();
+					elements.editableText.value = trimmed;
+					scheduleTranslation(trimmed);
 					toggleActionButtons(true);
 				}
-				
-				// Update interim display
+
 				if (interimResult) {
 					interimTranscript = interimResult;
 					elements.resultBox.textContent = interimTranscript;
 					elements.resultBox.classList.remove('hidden');
-				} else if (!interimTranscript) {
-					// Hide interim box if no interim text
-					elements.messageText.textContent = '';					
 				}
 			}
 
@@ -722,7 +705,6 @@
 					
 					// Clear interim display
 					interimTranscript = '';
-					elements.messageText.textContent = '';
 					elements.resultBox.classList.add('hidden');
 				}
 				
@@ -931,44 +913,35 @@
 				const text = elements.editableText.value.trim();
 				if (!text) return;
 
-				showStatus('processing', 'Đang tạo gợi ý...');
-				elements.loading.classList.remove('hidden');
-
 				try {
+					showStatus('processing', 'Đang tạo gợi ý...');
 					const suggestion = await suggestCorrectionWithGemini(text, currentLang);
+
 					elements.suggestions.innerHTML = `<ul><li id="suggestion-item">${suggestion}</li></ul>`;
 					elements.correctionsBox.classList.remove('hidden');
-					elements.translateSuggestionBtn.disabled = false; // bật nút dịch
-					elements.suggestionTranslation.classList.add('hidden'); // ẩn bản dịch cũ nếu có
+					elements.translateSuggestionBtn.disabled = false;
+					elements.suggestionTranslation.classList.add('hidden');
+
 					showStatus('success', 'Đã tạo gợi ý');
 				} catch (error) {
 					console.error('Lỗi khi tạo gợi ý:', error);
 					showStatus('error', 'Không thể tạo gợi ý.');
-				} finally {
-					elements.loading.classList.add('hidden');
 				}
-			});	
-			
+			});
+						
 			// Nút dịch gợi ý
 			elements.translateSuggestionBtn.addEventListener('click', async () => {
-				const suggestionText = document.getElementById('suggestion-item')?.innerText || '';
+				const suggestionText = document.getElementById('suggestion-item')?.innerText.trim();
 				if (!suggestionText) return;
 
 				showStatus('processing', 'Đang dịch gợi ý...');
-				elements.loading.classList.remove('hidden');
 
 				try {
-					const translated = await translateWithGemini(suggestionText, currentLang, 'vi-VN');
-					elements.suggestionTranslation.textContent = translated;
-					elements.suggestionTranslation.classList.remove('hidden');
+					await translateWithGemini(suggestionText, currentLang, 'vi-VN');
 					showStatus('success', 'Đã dịch gợi ý');
 				} catch (error) {
 					console.error('Lỗi dịch gợi ý:', error);
-					elements.suggestionTranslation.textContent = 'Không thể dịch gợi ý.';
-					elements.suggestionTranslation.classList.remove('hidden');
-					showStatus('error', 'Lỗi dịch gợi ý');
-				} finally {
-					elements.loading.classList.add('hidden');
+					showStatus('error', 'Không thể dịch gợi ý.');
 				}
 			});
 			
