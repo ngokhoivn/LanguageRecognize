@@ -87,12 +87,11 @@
         }
 
         .toolbar {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-wrap: wrap;
-            margin-bottom: 10px;
+			display: flex;
 			justify-content: space-between;
+			align-items: center;
+			flex-wrap: nowrap;
+			gap: 10px;
         }
 
         .controls-group {
@@ -223,6 +222,7 @@
 			border-radius: var(--border-radius);
 			color: var(--text-primary);
 			white-space: nowrap; /* tránh chữ xuống dòng */
+			
         }
 
         .status i {
@@ -435,40 +435,40 @@
         </div>
 
         <div class="toolbar">
-			<div class="button-group-horizontal">
-				<button id="micBtn" class="icon-button btn-primary" title="Bắt đầu ghi âm">
-					<i class="fas fa-microphone"></i>
-				</button>
-				<button id="suggestBtn" class="icon-button btn-primary" title="Gợi ý cách nói" disabled>
-					<i class="fas fa-lightbulb"></i>
-				</button>
-				<button id="speakBtn" class="icon-button btn-primary" title="Phát âm thanh" disabled>
-					<i class="fas fa-volume-up"></i>
-				</button>
-				<button id="saveBtn" class="icon-button btn-secondary" title="Lưu vào lịch sử" disabled>
-					<i class="fas fa-save"></i>
-				</button>
-				<button id="historyBtn" class="icon-button btn-secondary" title="Xem lịch sử">
-					<i class="fas fa-history"></i>
-				</button>
-				<button id="clearBtn" class="icon-button btn-danger" title="Xóa tất cả">
-					<i class="fas fa-trash"></i>
-				</button>
-			</div>
-
-        <div class="status" id="status">
-			<span id="status-icon"><i class="fas fa-info-circle"></i></span>
-			<span id="status-message">Nhấn nút microphone và nói...</span>
-			<div id="speech-indicator" class="speech-progress hidden">
-				<div class="bar"></div>
-				<div class="bar"></div>
-				<div class="bar"></div>
-				<div class="bar"></div>
-				<div class="bar"></div>
-			</div>				
-        </div>
+			<div class="vertical-group">
+				<div class="button-group-horizontal">
+					<button id="micBtn" class="icon-button btn-primary" title="Bắt đầu ghi âm">
+						<i class="fas fa-microphone"></i>
+					</button>
+					<button id="suggestBtn" class="icon-button btn-primary" title="Gợi ý cách nói" disabled>
+						<i class="fas fa-lightbulb"></i>
+					</button>
+					<button id="speakBtn" class="icon-button btn-primary" title="Phát âm thanh" disabled>
+						<i class="fas fa-volume-up"></i>
+					</button>
+					<button id="saveBtn" class="icon-button btn-secondary" title="Lưu vào lịch sử" disabled>
+						<i class="fas fa-save"></i>
+					</button>
+					<button id="historyBtn" class="icon-button btn-secondary" title="Xem lịch sử">
+						<i class="fas fa-history"></i>
+					</button>
+					<button id="clearBtn" class="icon-button btn-danger" title="Xóa tất cả">
+						<i class="fas fa-trash"></i>
+					</button>
+				</div>
+	
+			<div class="status" id="status">
+				<span id="status-icon"><i class="fas fa-info-circle"></i></span>
+				<span id="status-message">Nhấn nút microphone và nói...</span>
+				<div id="speech-indicator" class="speech-progress hidden">
+					<div class="bar"></div>
+					<div class="bar"></div>
+					<div class="bar"></div>
+					<div class="bar"></div>
+					<div class="bar"></div>
+				</div>				
+			</div>		
 		
-		<div class="vertical-group">
 			<div id="result" class="text-area result-box" style="white-space: pre-wrap; min-height: 100px;"></div>
 			
 			<div id="translation" class="translation-box">
