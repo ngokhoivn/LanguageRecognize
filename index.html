@@ -5,102 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Voice Chat App</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --primary-color: #8ab4f8;
-            --primary-dark: #7ba3e6;
-            --secondary-color: #81c995;
-            --secondary-dark: #72b586;
-            --danger-color: #f28b82;
-            --danger-dark: #e37b72;
-            --bg-dark: #121212;
-            --bg-darker: #0a0a0a;
-            --bg-card: #1e1e1e;
-            --text-primary: #e1e1e1;
-            --text-secondary: #b0b0b0;
-            --border-color: #333333;
-            --border-radius: 8px;
-            --box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-        }
+	<style>
+		:root {
+			--primary-color: #8ab4f8;
+			--primary-dark: #7ba3e6;
+			--secondary-color: #81c995;
+			--secondary-dark: #72b586;
+			--danger-color: #f28b82;
+			--danger-dark: #e37b72;
+			--bg-dark: #121212;
+			--bg-darker: #0a0a0a;
+			--bg-card: #1e1e1e;
+			--text-primary: #e1e1e1;
+			--text-secondary: #b0b0b0;
+			--border-color: #333333;
+			--border-radius: 8px;
+			--box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+		}
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+		* {
+			box-sizing: border-box;
+			margin: 0;
+			padding: 0;
+		}
 
-        body {
-            background-color: var(--bg-dark);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-            color: var(--text-primary);
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-        }
+		body {
+			background-color: var(--bg-dark);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			min-height: 100vh;
+			padding: 20px;
+			color: var(--text-primary);
+			font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+		}
 
-        .chat-container {
-            width: 100%;
-            max-width: 500px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            background-color: var(--bg-card);
-            border-radius: 16px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-            padding: 20px;
-            border: 1px solid var(--border-color);
-        }
+		.chat-container {
+			width: 100%;
+			max-width: 500px;
+			display: flex;
+			flex-direction: column;
+			gap: 15px;
+			background-color: var(--bg-card);
+			border-radius: 16px;
+			box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+			padding: 20px;
+			border: 1px solid var(--border-color);
+		}
 
-        .chat-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-
-        .chat-title {
-            font-size: 1.2rem;
-            font-weight: 500;
-            color: var(--primary-color);
-        }
-
-        .tab-bar {
-            display: flex;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 10px;
-        }
-
-        .tab {
-            flex: 1;
-            padding: 10px;
-            text-align: center;
-            background: var(--bg-darker);
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .tab.active {
-            background: var(--primary-color);
-            color: #202124;
-        }
-
-        .toolbar {
+		.chat-header {
 			display: flex;
 			justify-content: space-between;
 			align-items: center;
-			flex-wrap: nowrap;
-			gap: 10px;
-        }
+			margin-bottom: 10px;
+		}
 
-        .controls-group {
-            display: flex;
-            gap: 8px;
-            align-items: center;
+		.chat-title {
+			font-size: 1.2rem;
+			font-weight: 500;
+			color: var(--primary-color);
+		}
+
+		.tab-bar {
+			display: flex;
+			border-bottom: 1px solid var(--border-color);
+			margin-bottom: 10px;
+		}
+
+		.tab {
+			flex: 1;
+			padding: 10px;
+			text-align: center;
+			background: var(--bg-darker);
+			cursor: pointer;
+			transition: background 0.3s;
+		}
+
+		.tab.active {
+			background: var(--primary-color);
+			color: #202124;
+		}
+
+		.toolbar {
+			display: flex;
+			flex-direction: column;
+			gap: 15px;
+		}
+
+		.controls-group {
+			display: flex;
+			gap: 8px;
+			align-items: center;
 			flex-wrap: nowrap;
 			overflow-x: auto;
-        }
+		}
 
 		.icon-button {
 			width: 40px;
@@ -120,98 +118,99 @@
 		.button-group-horizontal {
 			display: flex;
 			gap: 10px;
-			align-items: center; /* Căn giữa theo chiều dọc */
+			align-items: center;
 		}
 		
 		.vertical-group {
 			display: flex;
 			flex-direction: column;
-			gap: 12px; /* khoảng cách giữa các box */
+			gap: 12px;
 			width: 100%;
 		}
 
-        .btn-primary {
-            background-color: var(--primary-color);
-            color: #202124;
-        }
+		.btn-primary {
+			background-color: var(--primary-color);
+			color: #202124;
+		}
 
-        .btn-primary:hover {
-            background-color: var(--primary-dark);
-        }
+		.btn-primary:hover {
+			background-color: var(--primary-dark);
+		}
 
-        .btn-secondary {
-            background-color: var(--secondary-color);
-            color: #202124;
-        }
+		.btn-secondary {
+			background-color: var(--secondary-color);
+			color: #202124;
+		}
 
-        .btn-secondary:hover {
-            background-color: var(--secondary-dark);
-        }
+		.btn-secondary:hover {
+			background-color: var(--secondary-dark);
+		}
 
-        .btn-danger {
-            background-color: var(--danger-color);
-            color: #202124;
-        }
+		.btn-danger {
+			background-color: var(--danger-color);
+			color: #202124;
+		}
 
-        .btn-danger:hover {
-            background-color: var(--danger-dark);
-        }
+		.btn-danger:hover {
+			background-color: var(--danger-dark);
+		}
 
-        button:disabled {
-            background-color: var(--border-color);
-            cursor: not-allowed;
-            opacity: 0.5;
-            color: var(--text-secondary);
-        }
+		button:disabled {
+			background-color: var(--border-color);
+			cursor: not-allowed;
+			opacity: 0.5;
+			color: var(--text-secondary);
+		}
 
-        .text-area {
-            width: 100%;
-            padding: 15px;
-            font-size: 16px;
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            min-height: 150px;
-            resize: vertical;
-            font-family: inherit;
-            background-color: var(--bg-darker);
-            color: var(--text-primary);
-        }
+		.text-area {
+			width: 100%;
+			padding: 15px;
+			font-size: 16px;
+			border: 1px solid var(--border-color);
+			border-radius: var(--border-radius);
+			min-height: 150px;
+			resize: vertical;
+			font-family: inherit;
+			background-color: var(--bg-darker);
+			color: var(--text-primary);
+		}
 
-        .text-area:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.2);
-        }
+		.text-area:focus {
+			outline: none;
+			border-color: var(--primary-color);
+			box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.2);
+		}
 
-        .text-area::placeholder {
-            color: var(--text-secondary);
-        }
+		.text-area::placeholder {
+			color: var(--text-secondary);
+		}
 
-        .result-box {
-            padding: 15px;
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            background-color: var(--bg-darker);
-            font-size: 16px;
-            line-height: 1.6;
-            color: var(--text-primary);
+		.result-box {
+			padding: 15px;
+			border: 1px solid var(--border-color);
+			border-radius: var(--border-radius);
+			background-color: var(--bg-darker);
+			font-size: 16px;
+			line-height: 1.6;
+			color: var(--text-primary);
 			min-height: 2em; 
-			max-height: 4em; 			
-			transition: none; /* tránh animation làm nhấp nhô */
-        }
+			max-height: 4em;             
+			transition: none;
+		}
 
-        .translation-box {
-            padding: 15px;
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            background-color: var(--bg-darker);
-            font-size: 16px;
-            line-height: 1.6;
+		.translation-box {
+			padding: 15px;
+			border: 1px solid var(--border-color);
+			border-radius: var(--border-radius);
+			background-color: var(--bg-darker);
+			font-size: 16px;
+			line-height: 1.6;
 			min-height: 6em;
-            color: var(--text-primary);
-        }
+			color: var(--text-primary);
+			display: block !important;
+		}
 
-        .status {
+		.status {
 			display: flex;
 			align-items: center;
 			gap: 10px;
@@ -221,220 +220,101 @@
 			padding: 12px 15px;
 			border-radius: var(--border-radius);
 			color: var(--text-primary);
-			white-space: nowrap; /* tránh chữ xuống dòng */
+			white-space: nowrap;
+		}
+
+		.suggestions {
+			margin-top: 15px;
+			width: 100%;
+			background-color: var(--bg-darker);
+			border-radius: var(--border-radius);
+			padding: 15px;
+			border: 1px solid var(--border-color);
+			color: var(--text-primary);
+		}
+
+		.suggestions-title {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			margin-bottom: 10px;
+			color: var(--primary-color);
+		}
+
+		.suggestions ul {
+			padding-left: 20px;
+			margin-top: 8px;
+		}
+
+		.suggestions li {
+			margin-bottom: 8px;
+			line-height: 1.5;
+			color: var(--text-secondary);
+			cursor: pointer;
+		}
+
+		.suggestions li:hover {
+			color: var(--primary-color);
+		}
+
+		.hidden {
+			display: none !important;
+		}
+
+		/* Pulse animation for recording state */
+		@keyframes pulse {
+			0% { box-shadow: 0 0 0 0 rgba(242, 139, 130, 0.7); }
+			70% { box-shadow: 0 0 0 10px rgba(242, 139, 130, 0); }
+			100% { box-shadow: 0 0 0 0 rgba(242, 139, 130, 0); }
+		}
+
+		.btn-danger {
+			animation: pulse 1.5s infinite;
+		}
+
+		/* Mobile styles */
+		@media (max-width: 600px) {
+			.chat-container {
+				border-radius: 0;
+				max-width: 100vw;
+				height: 100vh;
+				padding: 15px;
+			}
+
+			.toolbar {
+				gap: 10px;
+			}
+
+			.text-area {
+				min-height: 120px;
+				font-size: 16px;
+			}
 			
-        }
-
-        .status i {
-            color: var(--primary-color);
-        }
-
-        .loading {
-            padding: 15px;
-            background-color: var(--bg-darker);
-            border-radius: var(--border-radius);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            border: 1px solid var(--border-color);
-        }
-
-        .loading.hidden {
-            display: none;
-        }
-
-        .loading span {
-            color: var(--text-primary);
-        }
-
-        .spinner {
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-radius: 50%;
-            border-top-color: var(--primary-color);
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .suggestions {
-            margin-top: 10px;
-            color: var(--text-primary);
-        }
-
-        .suggestions-title {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 10px;
-            color: var(--primary-color);
-        }
-
-        .suggestions ul {
-            padding-left: 20px;
-            margin-top: 8px;
-        }
-
-        .suggestions li {
-            margin-bottom: 8px;
-            line-height: 1.5;
-            color: var(--text-secondary);
-            cursor: pointer;
-        }
-
-        .suggestions li:hover {
-            color: var(--primary-color);
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        /* History dialog styles */
-        .history-dialog {
-            display: flex;
-            flex-direction: column;
-            color: var(--text-primary);
-        }
-
-        .history-dialog h2 {
-            font-size: 1.5rem;
-            font-weight: 500;
-            margin-bottom: 15px;
-        }
-
-        .history-dialog .load-btn:hover {
-            background-color: var(--primary-dark) !important;
-        }
-
-        .history-dialog .delete-btn:hover {
-            background-color: var(--danger-dark) !important;
-        }
-
-        /* Enhanced animations */
-        .result-box, .translation-box {
-            transition: none !important;
-        }
-
-        .result-box.hidden, .translation-box.hidden {
-            display: none;
-        }
-
-        /* Pulse animation for recording state */
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(242, 139, 130, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(242, 139, 130, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(242, 139, 130, 0); }
-        }
-
-        .btn-danger {
-            animation: pulse 1.5s infinite;
-        }
-
-        /* Tooltip styles */
-        .tooltip {
-            position: relative;
-            display: inline-block;
-        }
-
-        .tooltip .tooltip-text {
-            visibility: hidden;
-            width: 120px;
-            background-color: var(--bg-darker);
-            color: var(--text-primary);
-            text-align: center;
-            border-radius: 6px;
-            padding: 5px;
-            position: absolute;
-            z-index: 1;
-            bottom: 125%;
-            left: 50%;
-            margin-left: -60px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            font-size: 12px;
-            border: 1px solid var(--border-color);
-        }
-
-        .tooltip:hover .tooltip-text {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        /* Keyboard shortcut indicator */
-        .keyboard-shortcut {
-            display: inline-block;
-            background: var(--bg-darker);
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            padding: 2px 5px;
-            font-size: 12px;
-            margin-left: 5px;
-            vertical-align: middle;
-            color: var(--text-secondary);
-        }
-
-        @media (max-width: 600px) {
-            .chat-container {
-                border-radius: 0;
-                max-width: 100vw;
-                height: 100vh;
-                padding: 15px;
-            }
-
-            .toolbar {
-                flex-direction: row;
-                flex-wrap: nowrap;
-				overflow-x: auto;
-				gap: 8px;
-            }
-
-            .controls-group {
-                justify-content: space-between;
-            }
-
-            .text-area {
-                min-height: 120px;
-            }
-            
-            .history-dialog {
-                width: 95%;
-                max-height: 85vh;
-            }
-            
-            .controls-group {
-                width: 100%;
-            }
-            
-            .icon-button {
-                flex: none;
-            }
-            
-            .text-area {
-                font-size: 16px; /* Prevent iOS zoom on input */
-            }
-        }
-    </style>
-</head>
+			.icon-button {
+				flex: none;
+			}
+			
+			.suggestions {
+				padding: 12px;
+			}
+		}
+	</style>	
+<head>
 <body>
-    <div class="chat-container">
-        <div class="chat-header">
-            <div class="chat-title">
-                <i class="fas fa-comments"></i> Trò chuyện với người nước ngoài
-            </div>
-        </div>
+	<div class="chat-container">
+		<div class="chat-header">
+			<div class="chat-title">
+				<i class="fas fa-comments"></i> Trò chuyện với người nước ngoài
+			</div>
+		</div>
 
-        <div class="tab-bar">
-            <div class="tab active" data-lang="vi-VN">Tiếng Việt</div>
-            <div class="tab" data-lang="ja-JP">Tiếng Nhật</div>
+		<div class="tab-bar">
+			<div class="tab active" data-lang="vi-VN">Tiếng Việt</div>
+			<div class="tab" data-lang="ja-JP">Tiếng Nhật</div>
 			<div class="tab" data-lang="en-US">English</div>
-        </div>
+		</div>
 
-        <div class="toolbar">
+		<div class="toolbar">
 			<div class="vertical-group">
 				<div class="button-group-horizontal">
 					<button id="micBtn" class="icon-button btn-primary" title="Bắt đầu ghi âm">
@@ -448,64 +328,62 @@
 					</button>
 					<button id="clearBtn" class="icon-button btn-danger" title="Xóa tất cả">
 						<i class="fas fa-trash"></i>
-					</button>	
-					<div class="loading hidden" id="loading">
-						<div class="spinner"></div>
-						<span>Đang xử lý...</span>
-					</div>					
+					</button>                    
 				</div>
-	
-			<div class="status" id="status">
-				<span id="status-icon"><i class="fas fa-info-circle"></i></span>
-				<span id="status-message">Nhấn nút microphone và nói...</span>
-				<div id="speech-indicator" class="speech-progress hidden">
-					<div class="bar"></div>
-					<div class="bar"></div>
-					<div class="bar"></div>
-					<div class="bar"></div>
-					<div class="bar"></div>
-				</div>				
-			</div>	
-	
-			<div id="result" class="text-area result-box" style="white-space: pre-wrap; min-height: 100px;"></div>
-			
-			<div id="translation" class="translation-box">
-				<div class="message" id="translation-text"></div>
-			</div>
-			
-			<textarea id="editableText" class="text-area" placeholder="Editable..."></textarea>
+
+				<div class="status" id="status">
+					<span id="status-icon"><i class="fas fa-info-circle"></i></span>
+					<span id="status-message">Nhấn nút microphone và nói...</span>
+					<div id="speech-indicator" class="speech-progress hidden">
+						<div class="bar"></div>
+						<div class="bar"></div>
+						<div class="bar"></div>
+						<div class="bar"></div>
+						<div class="bar"></div>
+					</div>                
+				</div>    
+
+				<div id="result" class="text-area result-box" style="white-space: pre-wrap; min-height: 100px;"></div>
+				
+				<div id="translation" class="translation-box">
+					<div class="message" id="translation-text"></div>
+				</div>
+				
+				<textarea id="editableText" class="text-area" placeholder="Editable..."></textarea>
 			</div>
 
-        <div id="corrections" class="suggestions hidden">
-            <div class="suggestions-title">
-                <i class="fas fa-lightbulb"></i>
-                <span id="suggestions-title-text">Có phải bạn muốn nói là:</span>
-            </div>
-            <div id="suggestions"></div>
-			
-			<!-- Nút dịch gợi ý -->
-			<div class="button-group-horizontal">
-				<button id="translateSuggestionBtn" class="icon-button btn-secondary" title="Gợi ý dịch" disabled>
-					<i class="fas fa-language"></i> 
-				</button>
-				
-				<button id="vocabBtn" class="icon-button btn-secondary" title="Gợi ý từ vựng" disabled>
-				  <i class="fas fa-book"></i>
-				</button>
-			</div>
-			
-			<!-- Kết quả dịch gợi ý -->
-			<div id="suggestionTranslation" class="translation-box hidden" style="margin-top: 10px;"></div>
-			
-			<div id="vocabBox" class="suggestions hidden" style="margin-top: 10px;">
+			<!-- Phần gợi ý đã được di chuyển ra ngoài vertical-group -->
+			<div id="corrections" class="suggestions hidden">
 				<div class="suggestions-title">
-					<i class="fas fa-book-open"></i>
-					<span>Gợi ý từ vựng liên quan:</span>
+					<i class="fas fa-lightbulb"></i>
+					<span id="suggestions-title-text">Có phải bạn muốn nói là:</span>
 				</div>
-				<div id="vocabList"></div>
-			</div>			
-        </div>
-    </div>
+				<div id="suggestions"></div>
+				
+				<!-- Nút dịch gợi ý -->
+				<div class="button-group-horizontal">
+					<button id="translateSuggestionBtn" class="icon-button btn-secondary" title="Gợi ý dịch" disabled>
+						<i class="fas fa-language"></i> 
+					</button>
+					
+					<button id="vocabBtn" class="icon-button btn-secondary" title="Gợi ý từ vựng" disabled>
+					  <i class="fas fa-book"></i>
+					</button>
+				</div>
+				
+				<!-- Kết quả dịch gợi ý -->
+				<div id="suggestionTranslation" class="translation-box hidden" style="margin-top: 10px;"></div>
+				
+				<div id="vocabBox" class="suggestions hidden" style="margin-top: 10px;">
+					<div class="suggestions-title">
+						<i class="fas fa-book-open"></i>
+						<span>Gợi ý từ vựng liên quan:</span>
+					</div>
+					<div id="vocabList"></div>
+				</div>            
+			</div>
+		</div>
+	</div>
 
     <script>        
             // DOM elements
@@ -528,7 +406,6 @@
 				vocabBtn: document.getElementById('vocabBtn'),
 				vocabBox: document.getElementById('vocabBox'),
 				vocabList: document.getElementById('vocabList'),
-				loading: document.getElementById('loading')
             };
 
             const GEMINI_API_KEY = "AIzaSyDaROReiR48rjfavf8Lk6XvphC6QxKPZo4";
@@ -928,15 +805,22 @@
 			// Nút dịch gợi ý
 			elements.translateSuggestionBtn.addEventListener('click', async () => {
 				const suggestionText = document.getElementById('suggestion-item')?.innerText.trim();
-				if (!suggestionText) return;
+				if (!suggestionText) {
+					showStatus('error', 'Không có gợi ý để dịch.');
+					return;
+				}
 
 				showStatus('processing', 'Đang dịch gợi ý...');
 
 				try {
-					await translateWithGemini(suggestionText, currentLang, 'vi-VN');
+					const translatedText = await translateWithGemini(suggestionText, currentLang, 'vi-VN');
+					elements.suggestionTranslation.innerText = translatedText;
+					elements.suggestionTranslation.classList.remove('hidden');
 					showStatus('success', 'Đã dịch gợi ý');
 				} catch (error) {
 					console.error('Lỗi dịch gợi ý:', error);
+					elements.suggestionTranslation.innerText = `Lỗi: ${error.message}`;
+					elements.suggestionTranslation.classList.remove('hidden');
 					showStatus('error', 'Không thể dịch gợi ý.');
 				}
 			});
@@ -947,7 +831,6 @@
 				if (!text) return;
 
 				showStatus('processing', 'Đang lấy từ vựng...');
-				elements.loading.classList.remove('hidden');
 
 				try {
 					const vocabHTML = await suggestVocabularyWithGemini(text, currentLang, 'tab');
@@ -958,7 +841,6 @@
 					console.error('Lỗi từ vựng:', error);
 					showStatus('error', 'Không thể lấy từ vựng');
 				} finally {
-					elements.loading.classList.add('hidden');
 				}
 			});
 
@@ -996,14 +878,9 @@
 
 			// Handle user typing directly into textarea
 			elements.editableText.addEventListener('input', () => {
-				// Lấy nội dung người dùng đang gõ
 				finalTranscript = elements.editableText.value.trim();
-				
-				// Kích hoạt nút nếu có văn bản
 				toggleActionButtons(!!finalTranscript);
-				
-				// Lên lịch dịch dựa trên nội dung trong editable box
-				scheduleTranslation(finalTranscript);
+				scheduleTranslation(finalTranscript); // Kích hoạt dịch tự động
 			});
 
 			// Add support for keyboard shortcuts
@@ -1043,44 +920,6 @@
 
 			// Call initialization when page loads
 			document.addEventListener('DOMContentLoaded', initializeSpeechRecognition);
-			
-			// Hàm hiển thị và xử lý dịch văn bản
-			async function displayTranslation(text) {
-				// Kiểm tra nếu không có văn bản để dịch
-				if (!text || text.trim() === '') {
-					elements.translationText.textContent = '';
-					return;
-				}
-				
-				// Hiển thị trạng thái đang xử lý
-				elements.loading.classList.remove('hidden');
-				showStatus('processing', 'Đang dịch...');
-				
-				try {
-					// Xác định ngôn ngữ đích dựa trên ngôn ngữ nguồn hiện tại
-					const targetLanguage = getTargetLanguage(currentLang);
-					
-					// Gọi API Gemini để dịch
-					const translatedText = await translateWithGemini(text, currentLang, targetLanguage);
-					
-					// Hiển thị kết quả dịch
-					elements.translationText.textContent = translatedText;
-					elements.translationBox.classList.remove('hidden');
-					
-					// Cập nhật trạng thái
-					showStatus('success', 'Đã dịch xong');
-					
-					// Cho phép lưu kết quả
-					elements.saveBtn.disabled = false;
-				} catch (error) {
-					console.error("Lỗi dịch:", error);
-					elements.translationText.textContent = `Không thể dịch: ${error.message}`;
-					showStatus('error', 'Lỗi dịch. Vui lòng thử lại.');
-				} finally {
-					// Ẩn biểu tượng đang tải
-					elements.loading.classList.add('hidden');
-				}
-			}
 
 			// Hàm xác định ngôn ngữ đích dựa trên ngôn ngữ nguồn
 			function getTargetLanguage(sourceLang) {
@@ -1213,8 +1052,15 @@
 
 			// Hàm hiển thị và xử lý dịch văn bản
 			async function displayTranslation(text) {
+				// Kiểm tra nếu không có văn bản để dịch
+				if (!text || text.trim() === '') {
+					elements.translationText.textContent = '';
+					elements.translationBox.classList.add('hidden');
+					return;
+				}
+
 				// Nếu văn bản giống với lần cuối đã dịch, không cần dịch lại
-				if (text === lastTranslatedText || !text || text.trim() === '') {
+				if (text === lastTranslatedText) {
 					return;
 				}
 				
@@ -1226,9 +1072,6 @@
 				
 				// Đánh dấu đang dịch
 				isTranslating = true;
-				
-				// Hiển thị trạng thái đang xử lý
-				elements.loading.classList.remove('hidden');
 				showStatus('processing', 'Đang dịch...');
 				
 				try {
@@ -1253,9 +1096,6 @@
 					elements.translationText.textContent = `Không thể dịch: ${error.message}`;
 					showStatus('error', 'Lỗi dịch. Vui lòng thử lại.');
 				} finally {
-					// Ẩn biểu tượng đang tải
-					elements.loading.classList.add('hidden');
-					
 					// Đánh dấu đã hoàn thành dịch
 					isTranslating = false;
 					
@@ -1263,27 +1103,20 @@
 					if (translationQueue.length > 0) {
 						const nextText = translationQueue.pop();
 						translationQueue = [];
-						
-						// Ngăn xung đột với quá trình nhận dạng đang diễn ra
-						setTimeout(() => {
-							displayTranslation(nextText);
-						}, 300);
+						setTimeout(() => displayTranslation(nextText), 300);
 					}
 				}
 			}
 
 			// Giảm độ nhạy của lịch trình dịch để tránh xung đột với nhận dạng
 			function scheduleTranslation(text) {
-				// Xóa mọi lịch trình trước đó
 				if (translationDebounceTimer) {
 					clearTimeout(translationDebounceTimer);
 				}
 				
-				// Lên lịch dịch với độ trễ cao hơn nếu đang ghi âm
 				const delay = isRecording ? 1500 : 800;
-				
 				translationDebounceTimer = setTimeout(() => {
-					displayTranslation(text);
+					displayTranslation(text); // Gọi hàm dịch
 				}, delay);
 			}	
 
