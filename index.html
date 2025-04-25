@@ -184,6 +184,10 @@
             font-size: 16px;
             line-height: 1.6;
             color: var(--text-primary);
+			min-height: 6em; /* khoảng 5 dòng với font-size 16px và line-height 1.6 */
+			max-height: 8em; /* ngăn không cho dài quá */
+			overflow-y: auto; /* hiện thanh cuộn nếu dài */
+			transition: none; /* tránh animation làm nhấp nhô */
         }
 
         .translation-box {
@@ -197,15 +201,16 @@
         }
 
         .status {
-            padding: 12px 15px;
-            background-color: var(--bg-darker);
-            border-radius: var(--border-radius);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 14px;
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			font-size: 14px;
+			border: 1px solid var(--border-color);
+			background-color: var(--bg-darker);
+			padding: 12px 15px;
+			border-radius: var(--border-radius);
+			color: var(--text-primary);
+			white-space: nowrap; /* tránh chữ xuống dòng */
         }
 
         .status i {
@@ -300,16 +305,12 @@
 
         /* Enhanced animations */
         .result-box, .translation-box {
-            transition: all 0.3s ease;
+            transition: none !important;
         }
 
         .result-box.hidden, .translation-box.hidden {
-            max-height: 0;
-            opacity: 0;
-            padding: 0;
-            margin: 0;
-            overflow: hidden;
-            border: none;
+            visibility: hidden;
+			opacity: 0;
         }
 
         /* Pulse animation for recording state */
@@ -364,45 +365,6 @@
             margin-left: 5px;
             vertical-align: middle;
             color: var(--text-secondary);
-        }
-
-        /* Styling for the progress indicator during speech recognition */
-        .speech-progress {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-            margin-top: 5px;
-        }
-
-        .speech-progress .bar {
-            width: 3px;
-            height: 15px;
-            background-color: var(--primary-color);
-            border-radius: 3px;
-            animation: sound-wave 1s infinite ease-in-out;
-        }
-
-        .speech-progress .bar:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-
-        .speech-progress .bar:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-
-        .speech-progress .bar:nth-child(4) {
-            animation-delay: 0.6s;
-        }
-
-        .speech-progress .bar:nth-child(5) {
-            animation-delay: 0.8s;
-        }
-
-        @keyframes sound-wave {
-            0% { height: 5px; }
-            50% { height: 15px; }
-            100% { height: 5px; }
         }
 
         @media (max-width: 600px) {
@@ -465,7 +427,7 @@
             <div class="controls-group">
                 <button id="micBtn" class="icon-button btn-primary" title="Bắt đầu ghi âm" aria-label="Bắt đầu ghi âm">
                     <i class="fas fa-microphone"></i>
-                </button><button id="suggestBtn"
+                </button>
                 <button id="suggestBtn" class="icon-button btn-primary" title="Có phải bạn muốn nói là:" disabled aria-label="Gợi ý cách nói">
                     <i class="fas fa-lightbulb"></i>
                 </button>
@@ -488,8 +450,15 @@
         </div>
 
         <div class="status" id="status">
-            <i class="fas fa-info-circle"></i>
-            <span>Nhấn nút microphone và nói...</span>
+			<span id="status-icon"><i class="fas fa-info-circle"></i></span>
+			<span id="status-message">Nhấn nút microphone và nói...</span>
+			<div id="speech-indicator" class="speech-progress hidden">
+				<div class="bar"></div>
+				<div class="bar"></div>
+				<div class="bar"></div>
+				<div class="bar"></div>
+				<div class="bar"></div>
+			</div>				
         </div>
 
         <div id="result" class="result-box hidden">
@@ -516,30 +485,32 @@
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
+    <script>        
             // DOM elements
             const elements = {
-                micBtn: document.getElementById('micBtn'),
-                suggestBtn: document.getElementById('suggestBtn'),
-                speakBtn: document.getElementById('speakBtn'),
-                saveBtn: document.getElementById('saveBtn'),
-                clearBtn: document.getElementById('clearBtn'),
-                historyBtn: document.getElementById('historyBtn'),
-                tabs: document.querySelectorAll('.tab'),
-                messageText: document.getElementById('message-text'),
-                translationText: document.getElementById('translation-text'),
-                editableText: document.getElementById('editableText'),
-                status: document.getElementById('status'),
-                suggestions: document.getElementById('suggestions'),
-                suggestionsTitle: document.getElementById('suggestions-title-text'),
-                loading: document.getElementById('loading'),
-                resultBox: document.getElementById('result'),
-                translationBox: document.getElementById('translation'),
-                correctionsBox: document.getElementById('corrections')
+				micBtn: document.getElementById('micBtn'),
+				suggestBtn: document.getElementById('suggestBtn'),
+				speakBtn: document.getElementById('speakBtn'),
+				saveBtn: document.getElementById('saveBtn'),
+				clearBtn: document.getElementById('clearBtn'),
+				historyBtn: document.getElementById('historyBtn'),
+				tabs: document.querySelectorAll('.tab'),
+				messageText: document.getElementById('message-text'),
+				translationText: document.getElementById('translation-text'),
+				editableText: document.getElementById('editableText'),
+				status: document.getElementById('status'),
+				suggestions: document.getElementById('suggestions'),
+				suggestionsTitle: document.getElementById('suggestions-title-text'),
+				loading: document.getElementById('loading'),
+				resultBox: document.getElementById('result'),
+				translationBox: document.getElementById('translation'),
+				correctionsBox: document.getElementById('corrections')
             };
 
             const GEMINI_API_KEY = "AIzaSyDaROReiR48rjfavf8Lk6XvphC6QxKPZo4";
+			// Initialize currentLang with default language
+			let currentLang = 'vi-VN';
+			
 			// Speech Recognition Logic
 			let recognition = null;
 			let isRecording = false;
@@ -655,10 +626,8 @@
 					
 					// Update UI
 					updateMicButtonState(true);
-					showStatus('recording', 'Đang nghe... Nói điều gì đó');
+					showStatus('recording', 'Đang nghe... ');
 					
-					// Set up silence detection
-					startSilenceDetection();
 				} catch (error) {
 					console.error("Error starting recognition:", error);
 					showStatus('error', `Không thể bắt đầu ghi âm: ${error.message}`);
@@ -669,6 +638,7 @@
 			// Stop speech recognition with error handling
 			function stopRecognition() {
 				try {
+					recognitionStoppedManually = true;
 					if (recognition) {
 						recognition.stop();
 					}
@@ -730,21 +700,22 @@
 				// Enable buttons if we have text
 				toggleActionButtons(!!elements.editableText.value.trim());
 				
-				// Auto-restart if speech ended unexpectedly but not paused or stopped manually
-				if (isRecording && !recognitionPaused) {
-					console.log("Recognition ended unexpectedly, restarting...");
-					setTimeout(() => {
-						if (isRecording && !recognitionPaused) {
-							try {
-								recognition.start();
-							} catch (e) {
-								console.error("Failed to restart recognition:", e);
-								isRecording = false;
-								showStatus('error', 'Không thể tiếp tục ghi âm');
-							}
-						}
-					}, 500);
-				}
+				// Tự động khởi động lại nếu không phải dừng thủ công
+				if (!recognitionStoppedManually) {
+					try {
+						recognition.start();
+						isRecording = true;
+						updateMicButtonState(true);
+						showStatus('recording', 'Đang nghe... Nói điều gì đó');
+					} catch (e) {
+						console.error("Failed to restart recognition:", e);
+						isRecording = false;
+						updateMicButtonState(false);
+						showStatus('error', 'Không thể tiếp tục ghi âm');
+					}
+				} else {
+					recognitionStoppedManually = false; // Reset lại sau khi đã dừng thủ công
+				}				
 			}
 
 			// Handle recognition errors
@@ -752,7 +723,7 @@
 				console.error("Recognition error:", event.error);
 				
 				const errorMessages = {
-					'no-speech': 'Không phát hiện giọng nói',
+					'no-speech': 'Không phát hiện giọng nói.',
 					'audio-capture': 'Không thể truy cập microphone',
 					'not-allowed': 'Vui lòng cho phép truy cập microphone',
 					'network': 'Lỗi kết nối mạng',
@@ -764,6 +735,7 @@
 				};
 				
 				const errorMessage = errorMessages[event.error] || errorMessages.default;
+				showStatus('error', errorMessage);
 				
 				// Fatal errors that should stop recognition
 				if (['not-allowed', 'audio-capture', 'network', 'language-not-supported', 'service-not-allowed'].includes(event.error)) {
@@ -775,16 +747,15 @@
 					// Non-fatal errors, show warning but continue if still recording
 					showStatus('warning', errorMessage);
 					
-					// Try to restart recognition for non-fatal errors
+					// Nếu đang ghi âm và chưa tạm dừng, thử restart lại
 					if (isRecording && !recognitionPaused) {
 						setTimeout(() => {
 							try {
+								recognition.stop(); // tránh lỗi "already started"
 								recognition.start();
 							} catch (e) {
 								console.error("Failed to restart after error:", e);
-								isRecording = false;
-								showStatus('error', 'Không thể tiếp tục ghi âm');
-								updateMicButtonState(false);
+								showStatus('error', 'Không thể tiếp tục ghi âm');								
 							}
 						}, 1000);
 					}
@@ -816,20 +787,16 @@
 					'ready': 'fa-info-circle'
 				};
 				
-				elements.status.innerHTML = `<i class="fas ${icons[type] || icons.info}"></i><span>${message}</span>`;
-				
-				// Add visual indicator for recording state
+				// Cập nhật biểu tượng và dòng chữ
+				document.getElementById('status-icon').innerHTML = `<i class="fas ${icons[type] || icons.info}"></i>`;
+				document.getElementById('status-message').textContent = message;
+
+				// Hiển thị sound wave nếu đang ghi âm
+				const wave = document.getElementById('speech-indicator');
 				if (type === 'recording') {
-					const speechProgressIndicator = document.createElement('div');
-					speechProgressIndicator.className = 'speech-progress';
-					speechProgressIndicator.innerHTML = `
-						<div class="bar"></div>
-						<div class="bar"></div>
-						<div class="bar"></div>
-						<div class="bar"></div>
-						<div class="bar"></div>
-					`;
-					elements.status.appendChild(speechProgressIndicator);
+					wave.classList.remove('hidden');
+				} else {
+					wave.classList.add('hidden');
 				}
 			}
 
@@ -862,31 +829,6 @@
 				translationDebounceTimer = setTimeout(() => {
 					displayTranslation(text);
 				}, 800); // 800ms debounce
-			}
-
-			// Detect silence to auto-stop recording after period of silence
-			function startSilenceDetection() {
-				if (recognitionTimeout) {
-					clearTimeout(recognitionTimeout);
-				}
-				
-				recognitionTimeout = setTimeout(() => {
-					// Check if we're still recording and have had no new results
-					if (isRecording) {
-						consecutiveSilenceCount++;
-						
-						// After 5 silence checks (about 10 seconds), auto-stop
-						if (consecutiveSilenceCount >= 5) {
-							console.log("Silence detected, stopping recognition");
-							stopRecognition();
-							showStatus('info', 'Đã dừng ghi âm do im lặng');
-							return;
-						}
-						
-						// Continue checking for silence
-						startSilenceDetection();
-					}
-				}, 2000); // Check every 2 seconds
 			}
 
 			// Reset recognition for new session
@@ -946,8 +888,12 @@
 
 			// Event listener for mic button
 			elements.micBtn.addEventListener('click', () => {
-				// Clear autosave when starting new recording
-				localStorage.removeItem('autosave');
+				if (!recognition) {
+					initSpeechRecognition();
+					
+					// Đánh dấu là user đã từng cấp quyền
+					localStorage.setItem('micPermissionAsked', 'true');
+				}
 				toggleRecognition();
 			});
 
@@ -1009,7 +955,7 @@
 				initSpeechRecognition();
 				
 				// Set initial status
-				showStatus('ready', 'Nhấn nút microphone và nói...');
+				showStatus('ready', 'Hãy nhấn mic để bắt đầu ghi âm...');
 			}
 
 			// Update UI text based on selected language
@@ -1031,6 +977,313 @@
 
 			// Call initialization when page loads
 			document.addEventListener('DOMContentLoaded', initializeSpeechRecognition);
+			
+			// Hàm hiển thị và xử lý dịch văn bản
+			async function displayTranslation(text) {
+				// Kiểm tra nếu không có văn bản để dịch
+				if (!text || text.trim() === '') {
+					elements.translationText.textContent = '';
+					return;
+				}
+				
+				// Hiển thị trạng thái đang xử lý
+				elements.loading.classList.remove('hidden');
+				showStatus('processing', 'Đang dịch...');
+				
+				try {
+					// Xác định ngôn ngữ đích dựa trên ngôn ngữ nguồn hiện tại
+					const targetLanguage = getTargetLanguage(currentLang);
+					
+					// Gọi API Gemini để dịch
+					const translatedText = await translateWithGemini(text, currentLang, targetLanguage);
+					
+					// Hiển thị kết quả dịch
+					elements.translationText.textContent = translatedText;
+					elements.translationBox.classList.remove('hidden');
+					
+					// Cập nhật trạng thái
+					showStatus('success', 'Đã dịch xong');
+					
+					// Cho phép lưu kết quả
+					elements.saveBtn.disabled = false;
+				} catch (error) {
+					console.error("Lỗi dịch:", error);
+					elements.translationText.textContent = `Không thể dịch: ${error.message}`;
+					showStatus('error', 'Lỗi dịch. Vui lòng thử lại.');
+				} finally {
+					// Ẩn biểu tượng đang tải
+					elements.loading.classList.add('hidden');
+				}
+			}
+
+			// Hàm xác định ngôn ngữ đích dựa trên ngôn ngữ nguồn
+			function getTargetLanguage(sourceLang) {
+				switch(sourceLang) {
+					case 'vi-VN':
+						return 'en-US'; // Tiếng Việt -> Tiếng Anh
+					case 'en-US':
+						return 'vi-VN'; // Tiếng Anh -> Tiếng Việt
+					case 'ja-JP':
+						return 'vi-VN'; // Tiếng Nhật -> Tiếng Việt
+					default:
+						return 'en-US'; // Mặc định là tiếng Anh
+				}
+			}
+
+			// Hàm dịch sử dụng API Gemini
+			async function translateWithGemini(text, sourceLang, targetLang) {
+				// Ánh xạ mã ngôn ngữ Web Speech API sang mã ngôn ngữ cho API Gemini
+				const languageMap = {
+					'vi-VN': 'Vietnamese',
+					'en-US': 'English',
+					'ja-JP': 'Japanese'
+				};
+				
+				// Chuyển đổi mã ngôn ngữ
+				const sourceLanguage = languageMap[sourceLang] || 'Vietnamese';
+				const targetLanguage = languageMap[targetLang] || 'English';
+				
+				// Tạo prompt cho Gemini
+				const prompt = `Translate the following text from ${sourceLanguage} to ${targetLanguage}. 
+			Only respond with the translated text, nothing else:
+
+			${text}`;
+				
+				try {
+					// Cấu hình request
+					const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+					const response = await fetch(`${apiUrl}?key=${GEMINI_API_KEY}`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({
+							contents: [{
+								parts: [{
+									text: prompt
+								}]
+							}],
+							generationConfig: {
+								temperature: 0.2,
+								topK: 40,
+								topP: 0.95,
+								maxOutputTokens: 1024,
+							}
+						})
+					});
+					
+					// Xử lý phản hồi
+					if (!response.ok) {
+						const errorData = await response.json();
+						throw new Error(`API error: ${errorData.error?.message || response.statusText}`);
+					}
+					
+					const data = await response.json();
+					
+					// Kiểm tra và trích xuất văn bản dịch
+					if (data.candidates && data.candidates[0]?.content?.parts && data.candidates[0].content.parts[0]?.text) {
+						return data.candidates[0].content.parts[0].text.trim();
+					} else {
+						throw new Error('Không nhận được bản dịch từ API');
+					}
+				} catch (error) {
+					console.error('Lỗi khi gọi API Gemini:', error);
+					throw new Error(`Không thể dịch: ${error.message}`);
+				}
+			}
+
+			// Hàm bật/tắt các nút hành động dựa trên trạng thái có văn bản
+			function toggleActionButtons(hasText) {
+				// Chỉ bật các nút khi có văn bản
+				elements.speakBtn.disabled = !hasText;
+				elements.suggestBtn.disabled = !hasText;
+				elements.saveBtn.disabled = !hasText;
+				
+				// Cập nhật giao diện nếu không có văn bản
+				if (!hasText) {
+					elements.translationBox.classList.add('hidden');
+					elements.correctionsBox.classList.add('hidden');
+				}
+			}
+
+			// Thêm chức năng phát âm cho nút speakBtn
+			elements.speakBtn.addEventListener('click', () => {
+				// Xác định văn bản cần phát âm
+				const textToSpeak = elements.translationText.textContent.trim();
+				if (!textToSpeak) return;
+				
+				// Xác định ngôn ngữ cho phát âm
+				const speakLanguage = getTargetLanguage(currentLang);
+				
+				// Sử dụng Web Speech API để phát âm
+				const utterance = new SpeechSynthesisUtterance(textToSpeak);
+				utterance.lang = speakLanguage;
+				speechSynthesis.speak(utterance);
+				
+				// Hiển thị trạng thái
+				showStatus('info', 'Đang phát âm...');
+			});
+
+			// Thêm chức năng nút clear
+			elements.clearBtn.addEventListener('click', () => {
+				// Xóa tất cả văn bản và reset trạng thái
+				resetRecognition();
+				elements.editableText.value = '';
+				elements.translationText.textContent = '';
+				elements.translationBox.classList.add('hidden');
+				elements.correctionsBox.classList.add('hidden');
+				
+				// Vô hiệu hóa các nút hành động
+				toggleActionButtons(false);
+				
+				// Hiển thị trạng thái
+				showStatus('info', 'Đã xóa tất cả');
+			});	
+
+			// Biến cờ và trạng thái
+			let isTranslating = false;
+			let translationQueue = [];
+			let lastTranslatedText = '';
+
+			// Hàm hiển thị và xử lý dịch văn bản
+			async function displayTranslation(text) {
+				// Nếu văn bản giống với lần cuối đã dịch, không cần dịch lại
+				if (text === lastTranslatedText || !text || text.trim() === '') {
+					return;
+				}
+				
+				// Nếu đang có một quá trình dịch, thêm vào hàng đợi
+				if (isTranslating) {
+					translationQueue = [text]; // Chỉ giữ yêu cầu mới nhất
+					return;
+				}
+				
+				// Đánh dấu đang dịch
+				isTranslating = true;
+				
+				// Hiển thị trạng thái đang xử lý
+				elements.loading.classList.remove('hidden');
+				showStatus('processing', 'Đang dịch...');
+				
+				try {
+					// Xác định ngôn ngữ đích dựa trên ngôn ngữ nguồn hiện tại
+					const targetLanguage = getTargetLanguage(currentLang);
+					
+					// Gọi API Gemini để dịch
+					const translatedText = await translateWithGemini(text, currentLang, targetLanguage);
+					
+					// Lưu văn bản đã dịch để tránh dịch lại
+					lastTranslatedText = text;
+					
+					// Hiển thị kết quả dịch
+					elements.translationText.textContent = translatedText;
+					elements.translationBox.classList.remove('hidden');
+					
+					// Cập nhật trạng thái
+					showStatus(isRecording ? 'recording' : 'success', isRecording ? 'Đang nghe...' : 'Đã dịch xong');
+					
+					// Cho phép lưu kết quả
+					elements.saveBtn.disabled = false;
+				} catch (error) {
+					console.error("Lỗi dịch:", error);
+					elements.translationText.textContent = `Không thể dịch: ${error.message}`;
+					showStatus('error', 'Lỗi dịch. Vui lòng thử lại.');
+				} finally {
+					// Ẩn biểu tượng đang tải
+					elements.loading.classList.add('hidden');
+					
+					// Đánh dấu đã hoàn thành dịch
+					isTranslating = false;
+					
+					// Kiểm tra hàng đợi
+					if (translationQueue.length > 0) {
+						const nextText = translationQueue.pop();
+						translationQueue = [];
+						
+						// Ngăn xung đột với quá trình nhận dạng đang diễn ra
+						setTimeout(() => {
+							displayTranslation(nextText);
+						}, 300);
+					}
+				}
+			}
+
+			// Giảm độ nhạy của lịch trình dịch để tránh xung đột với nhận dạng
+			function scheduleTranslation(text) {
+				// Xóa mọi lịch trình trước đó
+				if (translationDebounceTimer) {
+					clearTimeout(translationDebounceTimer);
+				}
+				
+				// Lên lịch dịch với độ trễ cao hơn nếu đang ghi âm
+				const delay = isRecording ? 1500 : 800;
+				
+				translationDebounceTimer = setTimeout(() => {
+					displayTranslation(text);
+				}, delay);
+			}
+
+			// Hàm dịch sử dụng API Gemini
+			async function translateWithGemini(text, sourceLang, targetLang) {
+				// Ánh xạ mã ngôn ngữ Web Speech API sang mã ngôn ngữ cho API Gemini
+				const languageMap = {
+					'vi-VN': 'Vietnamese',
+					'en-US': 'English',
+					'ja-JP': 'Japanese'
+				};
+				
+				// Chuyển đổi mã ngôn ngữ
+				const sourceLanguage = languageMap[sourceLang] || 'Vietnamese';
+				const targetLanguage = languageMap[targetLang] || 'English';
+				
+				// Tạo prompt cho Gemini
+				const prompt = `Translate the following text from ${sourceLanguage} to ${targetLanguage}. 
+			Only respond with the translated text, nothing else:
+
+			${text}`;
+				
+				try {
+					// Cấu hình request
+					const apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+					const response = await fetch(`${apiUrl}?key=${GEMINI_API_KEY}`, {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
+						body: JSON.stringify({
+							contents: [{
+								parts: [{
+									text: prompt
+								}]
+							}],
+							generationConfig: {
+								temperature: 0.2,
+								topK: 40,
+								topP: 0.95,
+								maxOutputTokens: 1024,
+							}
+						})
+					});
+					
+					// Xử lý phản hồi
+					if (!response.ok) {
+						const errorData = await response.json();
+						throw new Error(`API error: ${errorData.error?.message || response.statusText}`);
+					}
+					
+					const data = await response.json();
+					
+					// Kiểm tra và trích xuất văn bản dịch
+					if (data.candidates && data.candidates[0]?.content?.parts && data.candidates[0].content.parts[0]?.text) {
+						return data.candidates[0].content.parts[0].text.trim();
+					} else {
+						throw new Error('Không nhận được bản dịch từ API');
+					}
+				} catch (error) {
+					console.error('Lỗi khi gọi API Gemini:', error);
+					throw new Error(`Không thể dịch: ${error.message}`);
+				}
+			}			
     </script>
 </body>
 </html>
